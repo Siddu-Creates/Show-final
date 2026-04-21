@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Create</title>
+  <style>
+    @font-face {
+      font-family: 'LuckiestGuy';
+      src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'PoppinsSemiBold';
+      src: url('assets/assets/fonts/Poppins-SemiBold.ttf') format('truetype');
+      font-weight: 600;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'PoppinsRegular';
+      src: url('assets/assets/fonts/Poppins-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .page {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 340px;
+    }
+
+    .mascot {
+      width: 82px;
+      height: auto;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .show-title {
+      font-family: 'LuckiestGuy', 'Impact', sans-serif;
+      font-size: 26px;
+      color: #111111;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      text-align: center;
+      user-select: none;
+      margin-bottom: 36px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+
+    .input-field,
+    .select-field {
+      width: 100%;
+      height: 52px;
+      border: 2px solid #111111;
+      border-radius: 12px;
+      padding: 0 18px;
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 15px;
+      color: #111111;
+      background: #ffffff;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: box-shadow 0.15s ease;
+    }
+
+    .input-field::placeholder {
+      color: #999999;
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 15px;
+    }
+
+    .input-field:focus,
+    .select-field:focus {
+      box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+    }
+
+    .select-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .select-wrapper::after {
+      content: '';
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 7px solid #111111;
+      pointer-events: none;
+    }
+
+    .select-field {
+      cursor: pointer;
+      padding-right: 42px;
+    }
+
+    .select-field option[value=""] {
+      color: #999999;
+    }
+
+    .select-field.placeholder-active {
+      color: #999999;
+    }
+
+    /* ── UPLOAD ROW ── */
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 34px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .upload-icon {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    /* Profile preview — shows the resized Base64 thumbnail */
+    .upload-preview {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: none;
+      border: 2px solid #111111;
+    }
+
+    .upload-label {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 16px;
+      color: #111111;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .btn-create {
+      width: 200px;
+      height: 52px;
+      background: #6366f1;
+      color: #ffffff;
+      border: none;
+      border-radius: 999px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-create:hover {
+      background: #4f46e5;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.38);
+    }
+
+    .btn-create:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    @media (max-width: 767px) {
+      .card { width: 88%; max-width: 340px; }
+      .show-title { font-size: 22px; }
+      .input-field,
+      .select-field { height: 48px; font-size: 14px; }
+      .btn-create { width: 170px; height: 48px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+
+      <img class="mascot" src="assets/assets/images/squ.webp" alt="SHOW mascot" />
+      <h1 class="show-title">SHOW</h1>
+
+      <div class="input-group">
+        <input
+          class="input-field"
+          type="text"
+          id="nameInput"
+          placeholder="Enter your name"
+          autocomplete="off"
+        />
+
+        <div class="select-wrapper">
+          <select class="select-field placeholder-active" id="playersSelect" onchange="onSelectChange(this)">
+            <option value="" disabled selected>Number of players</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+
+        <div class="select-wrapper">
+          <select class="select-field placeholder-active" id="topicSelect" onchange="onSelectChange(this)">
+            <option value="" disabled selected>Select Topic</option>
+            <option value="chocolates">Chocolates</option>
+            <option value="movies">Movies</option>
+            <option value="countries">Countries</option>
+            <option value="cartoons">Cartoons</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Upload row — UI unchanged, but now processes locally -->
+      <div class="upload-row" onclick="document.getElementById('fileInput').click()">
+        <img class="upload-icon" id="uploadIcon" src="assets/assets/images/upload.png" alt="Upload" />
+        <img class="upload-preview" id="uploadPreview" alt="Profile" />
+        <span class="upload-label">upload your profile</span>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" onchange="handleFileUpload(event)" />
+
+      <button class="btn-create" onclick="handleCreate()">Create</button>
+
+    </div>
+  </div>
+
+  <script>
+    // ── Select placeholder colour toggle ──
+    function onSelectChange(sel) {
+      sel.classList.toggle('placeholder-active', !sel.value);
+    }
+
+    // ── Holds the Base64 data URL after resize; null if no image chosen ──
+    let profilePicBase64 = null;
+
+    // ── Resize any chosen image to an 80×80 JPEG data URL (≈3–6 KB) ──
+    // No file is sent to the server — everything stays in the browser.
+    function resizeImageToBase64(file) {
+      return new Promise((resolve) => {
+        if (!file) { resolve(null); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const SIZE = 80;
+            const canvas = document.createElement('canvas');
+            canvas.width  = SIZE;
+            canvas.height = SIZE;
+            const ctx = canvas.getContext('2d');
+            // Cover-crop: scale so the shorter dimension fills 80px, then centre
+            const scale = Math.max(SIZE / img.width, SIZE / img.height);
+            const w = img.width  * scale;
+            const h = img.height * scale;
+            ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          };
+          img.onerror = () => resolve(null);
+          img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ── When user picks a file: resize it, store Base64, show preview ──
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      profilePicBase64 = await resizeImageToBase64(file);
+
+      if (profilePicBase64) {
+        document.getElementById('uploadPreview').src     = profilePicBase64;
+        document.getElementById('uploadPreview').style.display = 'block';
+        document.getElementById('uploadIcon').style.display    = 'none';
+      }
+    }
+
+    // ── Create room: send only text fields to server, Base64 stays in browser ──
+    async function handleCreate() {
+      const name    = document.getElementById('nameInput').value.trim();
+      const players = document.getElementById('playersSelect').value;
+      const topic   = document.getElementById('topicSelect').value;
+
+      if (!name || !players || !topic) {
+        alert('Please fill in all fields before creating a game.');
+        return;
+      }
+
+      const btn = document.querySelector('.btn-create');
+      btn.textContent = 'Creating...';
+      btn.disabled    = true;
+
+      try {
+        // Only text fields — no file, no FormData, no multer needed
+        const res = await fetch('/api/create-room', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ name, maxPlayers: players, topic })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || 'Failed to create room.');
+          btn.textContent = 'Create';
+          btn.disabled    = false;
+          return;
+        }
+
+        // Save everything to sessionStorage.
+        // profilePicBase64 is either a data URL string or null (no upload).
+        // The game screen will use null as the signal to show a default avatar.
+        sessionStorage.setItem('show_code',        data.code);
+        sessionStorage.setItem('show_playerIndex', '0');
+        sessionStorage.setItem('show_name',        name);
+        sessionStorage.setItem('show_profilePic',  profilePicBase64 || '');
+        sessionStorage.setItem('show_isCreator',   'true');
+        sessionStorage.setItem('show_maxPlayers',  players);
+        sessionStorage.setItem('show_topic',       topic);
+
+        window.location.href = 'next1.html';
+
+      } catch (err) {
+        alert('Server error. Is the server running?');
+        btn.textContent = 'Create';
+        btn.disabled    = false;
+      }
+    }
+  </script>
+</body>
+</html>

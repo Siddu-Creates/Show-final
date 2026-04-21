@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Puzzle</title>
+  <style>
+    @font-face { font-family: 'LuckiestGuy';     src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf')  format('truetype'); }
+    @font-face { font-family: 'PoppinsSemiBold'; src: url('assets/assets/fonts/Poppins-SemiBold.ttf')     format('truetype'); font-weight: 600; }
+    @font-face { font-family: 'PoppinsRegular';  src: url('assets/assets/fonts/Poppins-Regular.ttf')      format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'PoppinsMedium';   src: url('assets/assets/fonts/Poppins-Medium.ttf')       format('truetype'); font-weight: 500; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #0a0a0a;
+      font-family: 'PoppinsRegular', sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── PHASE: MEMORISE ── */
+    #memorisePhase, #solvePhase, #donePhase {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    #solvePhase, #donePhase { display: none; }
+
+    .phase-title {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 28px;
+      color: #fff;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    .phase-sub {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 14px;
+      color: #aaa;
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.6;
+    }
+
+    /* ── TIMER BAR ── */
+    .timer-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .timer-num {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 36px;
+      color: #fff;
+      min-width: 48px;
+      text-align: center;
+      transition: color 0.3s;
+    }
+    .timer-num.urgent { color: #ef4444; }
+    .timer-bar-track {
+      width: 220px;
+      height: 8px;
+      background: #333;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .timer-bar-fill {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 99px;
+      transition: width 1s linear, background 0.3s;
+    }
+    .timer-bar-fill.urgent { background: #ef4444; }
+
+    /* ── 5×5 GRID ── */
+    .grid-wrap {
+      position: relative;
+      background: #111;
+      border: 2px solid #333;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .grid {
+      display: grid;
+      gap: 0;
+    }
+
+    .grid-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #222;
+      cursor: default;
+      position: relative;
+      transition: background 0.1s;
+    }
+
+    /* Solve phase cells are clickable */
+    #solvePhase .grid-cell {
+      cursor: pointer;
+    }
+    #solvePhase .grid-cell:hover {
+      background: #1e1e1e;
+    }
+    #solvePhase .grid-cell.placed:hover {
+      background: #111;
+    }
+
+    .circle {
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      transition: transform 0.15s;
+    }
+
+    /* ── COLOR PALETTE ── */
+    .palette-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .palette-circle {
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .palette-circle:hover { transform: scale(1.15); }
+    .palette-circle.selected {
+      border-color: #fff;
+      transform: scale(1.2);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+    }
+    /* Badge showing how many left of this color */
+    .palette-badge {
+      position: absolute;
+      top: -4px; right: -4px;
+      background: #fff;
+      color: #111;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 10px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+
+    /* ── ERASE BUTTON ── */
+    .erase-btn {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      border: 2.5px solid #555;
+      background: #1a1a1a;
+      color: #aaa;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .erase-btn:hover { border-color: #fff; background: #2a2a2a; transform: scale(1.1); }
+    .erase-btn.selected {
+      border-color: #ef4444;
+      background: #2a0a0a;
+      color: #ef4444;
+    }
+
+    /* ── SUBMIT BTN ── */
+    .submit-btn {
+      width: 200px; height: 52px;
+      background: #fff;
+      color: #111;
+      border: none;
+      border-radius: 12px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+    .submit-btn:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(255,255,255,0.15);
+    }
+    .submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── DONE / RESULT PHASE ── */
+    .result-icon {
+      font-size: 64px;
+      line-height: 1;
+    }
+    .result-title {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 32px;
+      letter-spacing: 0.06em;
+    }
+    .result-title.correct { color: #22c55e; }
+    .result-title.wrong   { color: #ef4444; }
+    .result-sub {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 15px;
+      color: #888;
+    }
+
+    /* Memorise countdown overlay on grid */
+    .memorise-countdown {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .memorise-countdown.show { opacity: 1; }
+    .countdown-num {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 72px;
+      color: #fff;
+      animation: countPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes countPop {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* Correct flash */
+    @keyframes correctFlash {
+      0%   { background: #22c55e22; }
+      100% { background: transparent; }
+    }
+    .grid-cell.correct-flash { animation: correctFlash 0.5s ease forwards; }
+    .grid-cell.wrong-flash   { background: #ef444422 !important; }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .phase-title { font-size: 22px; }
+      .timer-num   { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── PHASE 1: MEMORISE ── -->
+  <div id="memorisePhase">
+    <div class="phase-title">MEMORISE THE PATTERN!</div>
+    <div class="phase-sub">Remember where each colored circle is placed. You'll need to recreate it.</div>
+
+    <div class="timer-row">
+      <div class="timer-num" id="memTimer">5</div>
+      <div class="timer-bar-track">
+        <div class="timer-bar-fill" id="memBar" style="width:100%"></div>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="grid" id="memGrid"></div>
+      <div class="memorise-countdown" id="memCountdown">
+        <div class="countdown-num" id="countdownNum">3</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 2: SOLVE ── -->
+  <div id="solvePhase">
+    <div class="phase-title">RECREATE THE PATTERN!</div>
+    <div class="phase-sub" id="solveSubText">Tap a color, then tap a cell to place it.</div>
+
+    <div class="timer-row">
+      <div class="timer-num" id="solveTimer">15</div>
+      <div class="timer-bar-track">
+        <div class="timer-bar-fill" id="solveBar" style="width:100%"></div>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="grid" id="solveGrid"></div>
+    </div>
+
+    <div class="palette-row" id="paletteRow"></div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitAnswer()">Submit</button>
+  </div>
+
+  <!-- ── PHASE 3: DONE ── -->
+  <div id="donePhase">
+    <div class="result-icon" id="resultIcon">✅</div>
+    <div class="result-title" id="resultTitle">Correct!</div>
+    <div class="result-sub"  id="resultSub">Heading to leaderboard...</div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  // ══════════════════════════════════════════════════════
+  //  SESSION
+  // ══════════════════════════════════════════════════════
+  const code        = sessionStorage.getItem('show_code')        || '';
+  const playerIndex = parseInt(sessionStorage.getItem('show_playerIndex') || '0');
+  const puzzleSeed  = parseInt(sessionStorage.getItem('show_puzzleSeed')  || '0');
+
+  // ══════════════════════════════════════════════════════
+  //  PUZZLE CONFIG
+  // ══════════════════════════════════════════════════════
+  const GRID_SIZE    = 5;   // 5×5 grid
+  const CELL_PX      = 62;  // cell size in px
+  const CIRCLE_PX    = 42;  // circle diameter
+  const PALETTE_PX   = 48;  // palette circle diameter
+  const MEM_SECONDS  = 5;   // seconds to memorise
+  const SOLVE_SECONDS= 15;  // seconds to solve
+
+  // Fixed color set — same 6 vivid colors used in game
+  const COLORS = [
+    { id: 'red',    hex: '#ef4444', label: 'Red'    },
+    { id: 'blue',   hex: '#3b82f6', label: 'Blue'   },
+    { id: 'green',  hex: '#22c55e', label: 'Green'  },
+    { id: 'yellow', hex: '#facc15', label: 'Yellow' },
+    { id: 'purple', hex: '#a855f7', label: 'Purple' },
+    { id: 'pink',   hex: '#ec4899', label: 'Pink'   },
+  ];
+
+  // Number of circles placed on the grid (randomised from seed)
+  // Between 5 and 8 circles for a good challenge
+  const NUM_CIRCLES = 5 + (puzzleSeed % 4); // 5,6,7 or 8
+
+  // ══════════════════════════════════════════════════════
+  //  GENERATE PUZZLE FROM SEED
+  //  Deterministic so same seed → same puzzle for all clients
+  //  (though only non-winner players see this page)
+  // ══════════════════════════════════════════════════════
+  function seededRand(seed, idx) {
+    // Simple LCG
+    let s = (seed * 9301 + 49297 * (idx + 1)) % 233280;
+    return s / 233280;
+  }
+
+  function generatePuzzle(seed) {
+    const cells = GRID_SIZE * GRID_SIZE; // 25 cells
+    const usedPositions = new Set();
+    const pattern = []; // [{ pos, colorIdx }]
+
+    // Pick which colors appear — always pick NUM_CIRCLES colors cycling through COLORS
+    // Each circle gets a distinct color (up to 6 colors, circle count ≤ 8 so some repeat)
+    for (let i = 0; i < NUM_CIRCLES; i++) {
+      let pos;
+      let attempts = 0;
+      do {
+        pos = Math.floor(seededRand(seed, i * 7 + attempts) * cells);
+        attempts++;
+      } while (usedPositions.has(pos) && attempts < 50);
+
+      usedPositions.add(pos);
+      const colorIdx = Math.floor(seededRand(seed, i * 13 + 3) * COLORS.length);
+      pattern.push({ pos, colorIdx });
+    }
+
+    return pattern;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  BUILD GRID DOM
+  // ══════════════════════════════════════════════════════
+  function buildGrid(containerId, pattern, clickable) {
+    const grid = document.getElementById(containerId);
+    grid.style.gridTemplateColumns = `repeat(${GRID_SIZE}, ${CELL_PX}px)`;
+    grid.style.gridTemplateRows    = `repeat(${GRID_SIZE}, ${CELL_PX}px)`;
+    grid.innerHTML = '';
+
+    const cells = GRID_SIZE * GRID_SIZE;
+    const patternMap = {};
+    pattern.forEach(p => { patternMap[p.pos] = p.colorIdx; });
+
+    for (let i = 0; i < cells; i++) {
+      const cell = document.createElement('div');
+      cell.className   = 'grid-cell';
+      cell.style.width  = CELL_PX + 'px';
+      cell.style.height = CELL_PX + 'px';
+      cell.dataset.pos  = i;
+
+      if (patternMap[i] !== undefined) {
+        const circle = document.createElement('div');
+        circle.className = 'circle';
+        circle.style.width      = CIRCLE_PX + 'px';
+        circle.style.height     = CIRCLE_PX + 'px';
+        circle.style.background = COLORS[patternMap[i]].hex;
+        cell.appendChild(circle);
+        cell.dataset.colorIdx = patternMap[i];
+        cell.classList.add('placed');
+      }
+
+      if (clickable) {
+        cell.addEventListener('click', () => onSolveClick(cell, i));
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  STATE
+  // ══════════════════════════════════════════════════════
+  const pattern        = generatePuzzle(puzzleSeed);
+  let playerGrid       = {}; // pos → colorIdx (player's answers)
+  let selectedColorIdx = null; // null = erase mode if erase selected
+  let eraseMode        = false;
+  let solveTimerVal    = SOLVE_SECONDS;
+  let solveInterval    = null;
+  let submitted        = false;
+
+  // How many of each color are needed (for palette badges)
+  const colorCounts = {};
+  pattern.forEach(p => {
+    colorCounts[p.colorIdx] = (colorCounts[p.colorIdx] || 0) + 1;
+  });
+
+  // ══════════════════════════════════════════════════════
+  //  SOLVE GRID CLICK
+  // ══════════════════════════════════════════════════════
+  function onSolveClick(cell, pos) {
+    if (submitted) return;
+
+    if (eraseMode) {
+      // Erase circle from this cell
+      delete playerGrid[pos];
+      cell.innerHTML   = '';
+      cell.dataset.colorIdx = '';
+      cell.classList.remove('placed');
+      updateSubmitBtn();
+      return;
+    }
+
+    if (selectedColorIdx === null) return;
+
+    // Place circle
+    playerGrid[pos] = selectedColorIdx;
+    cell.innerHTML   = '';
+    const circle = document.createElement('div');
+    circle.className = 'circle';
+    circle.style.width      = CIRCLE_PX + 'px';
+    circle.style.height     = CIRCLE_PX + 'px';
+    circle.style.background = COLORS[selectedColorIdx].hex;
+    circle.style.animation  = 'countPop 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+    cell.appendChild(circle);
+    cell.dataset.colorIdx = selectedColorIdx;
+    cell.classList.add('placed');
+
+    updateSubmitBtn();
+
+    // Auto-submit if all circles placed
+    if (Object.keys(playerGrid).length >= NUM_CIRCLES) {
+      setTimeout(submitAnswer, 300);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  BUILD PALETTE
+  // ══════════════════════════════════════════════════════
+  function buildPalette() {
+    const row = document.getElementById('paletteRow');
+    row.innerHTML = '';
+
+    COLORS.forEach((color, idx) => {
+      const wrap = document.createElement('div');
+      wrap.style.position = 'relative';
+
+      const el = document.createElement('div');
+      el.className          = 'palette-circle';
+      el.style.width        = PALETTE_PX + 'px';
+      el.style.height       = PALETTE_PX + 'px';
+      el.style.background   = color.hex;
+      el.dataset.colorIdx   = idx;
+      el.title              = color.label;
+
+      el.addEventListener('click', () => selectColor(idx));
+      wrap.appendChild(el);
+
+      // Badge showing count needed
+      if (colorCounts[idx]) {
+        const badge = document.createElement('div');
+        badge.className   = 'palette-badge';
+        badge.textContent = colorCounts[idx];
+        badge.id          = 'badge_' + idx;
+        wrap.appendChild(badge);
+      }
+
+      row.appendChild(wrap);
+    });
+
+    // Erase button
+    const eraseWrap = document.createElement('div');
+    const eraseBtn  = document.createElement('div');
+    eraseBtn.className = 'erase-btn';
+    eraseBtn.id        = 'eraseBtn';
+    eraseBtn.innerHTML = '✕';
+    eraseBtn.title     = 'Erase';
+    eraseBtn.addEventListener('click', toggleErase);
+    eraseWrap.appendChild(eraseBtn);
+    row.appendChild(eraseWrap);
+  }
+
+  function selectColor(idx) {
+    eraseMode        = false;
+    selectedColorIdx = idx;
+    document.getElementById('eraseBtn')?.classList.remove('selected');
+    document.querySelectorAll('.palette-circle').forEach((el, i) => {
+      el.classList.toggle('selected', parseInt(el.dataset.colorIdx) === idx);
+    });
+  }
+
+  function toggleErase() {
+    eraseMode        = !eraseMode;
+    selectedColorIdx = null;
+    document.querySelectorAll('.palette-circle').forEach(el => el.classList.remove('selected'));
+    document.getElementById('eraseBtn')?.classList.toggle('selected', eraseMode);
+  }
+
+  function updateSubmitBtn() {
+    const btn   = document.getElementById('submitBtn');
+    const count = Object.keys(playerGrid).length;
+    btn.disabled = count === 0;
+    if (count >= NUM_CIRCLES) {
+      btn.textContent = 'Submit ✓';
+    } else {
+      btn.textContent = `Submit (${count}/${NUM_CIRCLES})`;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  VERIFY ANSWER
+  // ══════════════════════════════════════════════════════
+  function verifyAnswer() {
+    const patternMap = {};
+    pattern.forEach(p => { patternMap[p.pos] = p.colorIdx; });
+
+    let correct = true;
+
+    // Every pattern cell must be filled with the right color
+    for (const p of pattern) {
+      if (playerGrid[p.pos] !== p.colorIdx) {
+        correct = false;
+        break;
+      }
+    }
+
+    // No extra cells filled beyond pattern
+    if (correct) {
+      for (const pos of Object.keys(playerGrid)) {
+        if (patternMap[parseInt(pos)] === undefined) {
+          correct = false;
+          break;
+        }
+      }
+    }
+
+    return correct;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  SUBMIT
+  // ══════════════════════════════════════════════════════
+  function submitAnswer() {
+    if (submitted) return;
+    submitted = true;
+    clearInterval(solveInterval);
+
+    const timeTaken = SOLVE_SECONDS - solveTimerVal;
+    const correct   = verifyAnswer();
+
+    // Flash feedback on grid
+    flashGrid(correct);
+
+    // Emit result to server
+    socket.emit('puzzle_result', {
+      code,
+      playerIndex,
+      correct,
+      timeTaken: Math.max(0.1, timeTaken)
+    });
+
+    // Show done phase after short delay
+    setTimeout(() => showDonePhase(correct, timeTaken), 800);
+  }
+
+  function flashGrid(correct) {
+    const cells = document.querySelectorAll('#solveGrid .grid-cell');
+    cells.forEach(cell => {
+      cell.classList.add(correct ? 'correct-flash' : 'wrong-flash');
+    });
+  }
+
+  function showDonePhase(correct, timeTaken) {
+    document.getElementById('solvePhase').style.display = 'none';
+    const done = document.getElementById('donePhase');
+    done.style.display = 'flex';
+
+    if (correct) {
+      document.getElementById('resultIcon').textContent  = '🎉';
+      document.getElementById('resultTitle').textContent = 'Correct!';
+      document.getElementById('resultTitle').className   = 'result-title correct';
+      document.getElementById('resultSub').textContent   =
+        `Solved in ${timeTaken.toFixed(1)}s — heading to leaderboard...`;
+    } else {
+      document.getElementById('resultIcon').textContent  = '❌';
+      document.getElementById('resultTitle').textContent = 'Wrong!';
+      document.getElementById('resultTitle').className   = 'result-title wrong';
+      document.getElementById('resultSub').textContent   = 'Better luck next time! Heading to leaderboard...';
+    }
+
+    setTimeout(() => { window.location.href = 'leaderboard.html'; }, 2000);
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  MEMORISE PHASE
+  // ══════════════════════════════════════════════════════
+  function startMemorisePhase() {
+    buildGrid('memGrid', pattern, false);
+
+    let memVal    = MEM_SECONDS;
+    const memBar  = document.getElementById('memBar');
+    const memNum  = document.getElementById('memTimer');
+
+    const memInterval = setInterval(() => {
+      memVal--;
+      memNum.textContent      = memVal;
+      memBar.style.width      = (memVal / MEM_SECONDS * 100) + '%';
+      if (memVal <= 2) {
+        memNum.classList.add('urgent');
+        memBar.classList.add('urgent');
+      }
+
+      if (memVal <= 0) {
+        clearInterval(memInterval);
+        startCountdown();
+      }
+    }, 1000);
+  }
+
+  // Brief 3-2-1 countdown before solve phase
+  function startCountdown() {
+    const overlay = document.getElementById('memCountdown');
+    const numEl   = document.getElementById('countdownNum');
+    overlay.classList.add('show');
+
+    let n = 3;
+    numEl.textContent = n;
+    numEl.style.animation = 'none';
+    void numEl.offsetWidth;
+    numEl.style.animation = 'countPop 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+
+    const cd = setInterval(() => {
+      n--;
+      if (n <= 0) {
+        clearInterval(cd);
+        overlay.classList.remove('show');
+        startSolvePhase();
+        return;
+      }
+      numEl.textContent = n;
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth;
+      numEl.style.animation = 'countPop 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+    }, 800);
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  SOLVE PHASE
+  // ══════════════════════════════════════════════════════
+  function startSolvePhase() {
+    document.getElementById('memorisePhase').style.display = 'none';
+    const phase = document.getElementById('solvePhase');
+    phase.style.display = 'flex';
+
+    // Build blank solve grid
+    buildGrid('solveGrid', [], true);
+    buildPalette();
+    updateSubmitBtn();
+
+    // Start solve timer
+    solveTimerVal = SOLVE_SECONDS;
+    const solveNum = document.getElementById('solveTimer');
+    const solveBar = document.getElementById('solveBar');
+
+    solveInterval = setInterval(() => {
+      solveTimerVal--;
+      solveNum.textContent      = solveTimerVal;
+      solveBar.style.width      = (solveTimerVal / SOLVE_SECONDS * 100) + '%';
+
+      if (solveTimerVal <= 5) {
+        solveNum.classList.add('urgent');
+        solveBar.classList.add('urgent');
+      }
+
+      if (solveTimerVal <= 0) {
+        clearInterval(solveInterval);
+        if (!submitted) submitAnswer(); // auto-submit on timeout
+      }
+    }, 1000);
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  SOCKET — just needed to emit puzzle_result
+  // ══════════════════════════════════════════════════════
+  const socket = io();
+
+  socket.on('connect', () => {
+    socket.emit('register', {
+      code,
+      playerIndex,
+      profilePic: sessionStorage.getItem('show_profilePic') || ''
+    });
+  });
+
+  // If round_results arrives, save rankings then go to leaderboard
+  socket.on('round_results', ({ rankings }) => {
+    sessionStorage.setItem('show_rankings', JSON.stringify(rankings));
+  });
+
+  socket.on('room_closed', () => {
+    window.location.href = 'join.html';
+  });
+
+  // ══════════════════════════════════════════════════════
+  //  KICK OFF
+  // ══════════════════════════════════════════════════════
+  startMemorisePhase();
+  </script>
+</body>
+</html>

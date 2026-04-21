@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Game</title>
+  <style>
+    @font-face { font-family: 'LuckiestGuy';     src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf')  format('truetype'); }
+    @font-face { font-family: 'PoppinsSemiBold'; src: url('assets/assets/fonts/Poppins-SemiBold.ttf')     format('truetype'); font-weight: 600; }
+    @font-face { font-family: 'PoppinsRegular';  src: url('assets/assets/fonts/Poppins-Regular.ttf')      format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'PoppinsMedium';   src: url('assets/assets/fonts/Poppins-Medium.ttf')       format('truetype'); font-weight: 500; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #FDFDFD;
+      font-family: 'PoppinsRegular', sans-serif;
+    }
+
+    #videoPhase {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 1;
+      transition: opacity 0.8s ease;
+    }
+
+    #videoPhase.fade-out { opacity: 0; pointer-events: none; }
+
+    #chitsVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    #cardPhase {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+    }
+
+    #cardPhase.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .show-logo {
+      position: absolute;
+      top: 30px;
+      left: 36px;
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 26px;
+      color: #111;
+      letter-spacing: 0.06em;
+      user-select: none;
+    }
+
+    /* ── Waiting badge shown while server hand hasn't arrived yet ── */
+    #waitingBadge {
+      position: absolute;
+      top: 30px;
+      right: 36px;
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px;
+      color: #aaa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #waitingBadge.visible { opacity: 1; }
+    .waiting-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #ccc;
+      animation: dotPulse 1.2s ease-in-out infinite;
+    }
+    .waiting-dot:nth-child(2) { animation-delay: 0.2s; }
+    .waiting-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotPulse {
+      0%, 80%, 100% { background: #ddd; }
+      40%            { background: #999; }
+    }
+
+    /* ── Waiting for others overlay (after "Let's play!" is clicked) ── */
+    #waitingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.96);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    #waitingOverlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .waiting-title {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 26px;
+      color: #111;
+      letter-spacing: 0.06em;
+    }
+    .waiting-sub {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 15px;
+      color: #888;
+    }
+    .waiting-players-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 220px;
+    }
+    .waiting-player-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'PoppinsMedium', sans-serif;
+      font-size: 14px;
+      color: #111;
+    }
+    .ready-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+    .ready-dot.ready { background: #22c55e; }
+    .waiting-dots-row {
+      display: flex;
+      gap: 6px;
+    }
+    .waiting-dots-row .waiting-dot { width: 9px; height: 9px; }
+
+    .mascot-wrap {
+      margin-bottom: 12px;
+    }
+    .mascot-wrap img {
+      width: 90px;
+      height: auto;
+      display: block;
+    }
+
+    .cards-row {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+
+    .card-wrap {
+      width: 227px;
+      height: 227px;
+      perspective: 900px;
+      cursor: default;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1);
+    }
+
+    .card-wrap.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front,
+    .card-back {
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    .card-front {
+      background: #fff;
+    }
+
+    .card-front img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 14px;
+      display: block;
+    }
+
+    .card-back {
+      background: #fff5f5;
+      transform: rotateY(180deg);
+      border: 2.5px solid #f87171;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .card-icon {
+      font-size: 52px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .card-label {
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 20px;
+      color: #111;
+      letter-spacing: 0.02em;
+      text-align: center;
+      padding: 0 12px;
+    }
+
+    .btn-unveil {
+      width: 220px;
+      height: 54px;
+      background: #ffffff;
+      color: #111111;
+      border: 2.5px solid #111111;
+      border-radius: 999px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-unveil:hover {
+      background: #111111;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+
+    .btn-unveil:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .btn-unveil:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-proceed {
+      margin-top: 16px;
+      width: 220px;
+      height: 54px;
+      background: #111111;
+      color: #ffffff;
+      border: none;
+      border-radius: 999px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease 0.2s, transform 0.15s ease, box-shadow 0.15s ease;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-proceed.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .btn-proceed:hover {
+      background: #2a2a2a;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    }
+
+    .btn-proceed:active { transform: translateY(0); box-shadow: none; }
+
+    @keyframes cardDrop {
+      from { opacity: 0; transform: translateY(-40px) scale(0.92); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+
+    .card-wrap {
+      opacity: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .card-wrap { width: 180px; height: 180px; }
+      .cards-row  { gap: 12px; }
+      .card-icon  { font-size: 40px; }
+      .card-label { font-size: 17px; }
+    }
+
+    @media (max-width: 767px) {
+      .cards-row  { gap: 8px; flex-wrap: wrap; justify-content: center; }
+      .card-wrap  { width: 140px; height: 140px; }
+      .card-icon  { font-size: 32px; }
+      .card-label { font-size: 14px; }
+      .btn-unveil, .btn-proceed { width: 180px; height: 48px; font-size: 17px; }
+      .show-logo  { font-size: 20px; top: 20px; left: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="videoPhase">
+    <video
+      id="chitsVideo"
+      src="assets/assets/videos/chits.mp4"
+      autoplay
+      muted
+      playsinline
+      preload="auto"
+    ></video>
+  </div>
+
+  <div id="cardPhase">
+
+    <span class="show-logo">SHOW</span>
+
+    <!-- Shown while waiting for server to send authoritative hand -->
+    <div id="waitingBadge">
+      <div class="waiting-dot"></div>
+      <div class="waiting-dot"></div>
+      <div class="waiting-dot"></div>
+      <span>Syncing cards...</span>
+    </div>
+
+    <div class="mascot-wrap">
+      <img src="assets/assets/images/squ.webp" alt="SHOW mascot" />
+    </div>
+
+    <div class="cards-row" id="cardsRow"></div>
+
+    <button class="btn-unveil" id="unveilBtn" onclick="unveilCards()">
+      Unveil cards
+    </button>
+
+    <button class="btn-proceed" id="proceedBtn" onclick="onProceedClick()">
+      Let's play!
+    </button>
+
+  </div>
+
+  <!-- Waiting for other players to also click "Let's play!" -->
+  <div id="waitingOverlay">
+    <div class="waiting-title">SHOW</div>
+    <div class="waiting-sub">Waiting for all players to be ready...</div>
+    <div class="waiting-players-list" id="waitingPlayersList"></div>
+    <div class="waiting-dots-row">
+      <div class="waiting-dot"></div>
+      <div class="waiting-dot"></div>
+      <div class="waiting-dot"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // ── Session
+    const code        = sessionStorage.getItem('show_code')        || '';
+    const playerIndex = parseInt(sessionStorage.getItem('show_playerIndex') || '0');
+    const playerName  = sessionStorage.getItem('show_name')        || '';
+    const topic       = sessionStorage.getItem('show_topic')       || 'chocolates';
+    const maxPlayers  = parseInt(sessionStorage.getItem('show_maxPlayers')  || '4');
+
+    // ── Icon lookup (no preview hand — we ONLY use server-dealt cards)
+    const TOPIC_ITEMS = {
+      chocolates: [
+        { label: 'KitKat',     icon: '🍫' },
+        { label: 'Dairy Milk', icon: '🍪' },
+        { label: 'Snickers',   icon: '🍬' },
+        { label: 'Ferrero',    icon: '🍭' },
+        { label: 'Twix',       icon: '🟤' },
+        { label: 'Bounty',     icon: '🥥' },
+        { label: 'Mars',       icon: '🪐' },
+        { label: 'Toblerone',  icon: '🔺' },
+        { label: 'Milky Bar',  icon: '🤍' },
+        { label: 'Crunch',     icon: '💥' }
+      ],
+      movies: [
+        { label: 'Action',    icon: '🗡️' },
+        { label: 'Comedy',    icon: '😂' },
+        { label: 'Horror',    icon: '👻' },
+        { label: 'Romance',   icon: '❤️' },
+        { label: 'Thriller',  icon: '😱' },
+        { label: 'Sci-Fi',    icon: '🚀' },
+        { label: 'Drama',     icon: '🎭' },
+        { label: 'Animation', icon: '🎨' },
+        { label: 'Fantasy',   icon: '🧙' },
+        { label: 'Mystery',   icon: '🔍' }
+      ],
+      countries: [
+        { label: 'India',     icon: '🇮🇳' },
+        { label: 'USA',       icon: '🇺🇸' },
+        { label: 'Japan',     icon: '🇯🇵' },
+        { label: 'Brazil',    icon: '🇧🇷' },
+        { label: 'Germany',   icon: '🇩🇪' },
+        { label: 'France',    icon: '🇫🇷' },
+        { label: 'Australia', icon: '🇦🇺' },
+        { label: 'Canada',    icon: '🇨🇦' },
+        { label: 'Italy',     icon: '🇮🇹' },
+        { label: 'Spain',     icon: '🇪🇸' }
+      ],
+      cartoons: [
+        { label: 'Tom & Jerry',    icon: '🐱' },
+        { label: 'Doraemon',       icon: '🤖' },
+        { label: 'SpongeBob',      icon: '🧽' },
+        { label: 'Shinchan',       icon: '😜' },
+        { label: 'Naruto',         icon: '🍥' },
+        { label: 'Phineas & Ferb', icon: '🔧' },
+        { label: 'Ben 10',         icon: '⌚' },
+        { label: 'Oggy',           icon: '🐘' },
+        { label: 'Motu Patlu',     icon: '🎪' },
+        { label: 'Chhota Bheem',   icon: '💪' }
+      ],
+      fruits: [
+        { label: 'Apple',      icon: '🍎' },
+        { label: 'Banana',     icon: '🍌' },
+        { label: 'Mango',      icon: '🥭' },
+        { label: 'Grapes',     icon: '🍇' },
+        { label: 'Orange',     icon: '🍊' },
+        { label: 'Strawberry', icon: '🍓' },
+        { label: 'Watermelon', icon: '🍉' },
+        { label: 'Pineapple',  icon: '🍍' },
+        { label: 'Papaya',     icon: '🪷' },
+        { label: 'Kiwi',       icon: '🥝' }
+      ],
+      animals: [
+        { label: 'Lion',      icon: '🦁' },
+        { label: 'Tiger',     icon: '🐯' },
+        { label: 'Elephant',  icon: '🐘' },
+        { label: 'Zebra',     icon: '🦓' },
+        { label: 'Giraffe',   icon: '🦒' },
+        { label: 'Penguin',   icon: '🐧' },
+        { label: 'Dolphin',   icon: '🐬' },
+        { label: 'Cheetah',   icon: '🐆' },
+        { label: 'Panda',     icon: '🐼' },
+        { label: 'Kangaroo',  icon: '🦘' }
+      ]
+    };
+
+    function getIconForLabel(label) {
+      for (const items of Object.values(TOPIC_ITEMS)) {
+        const found = items.find(i => i.label === label);
+        if (found) return found.icon;
+      }
+      return '🃏';
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  STATE
+    //  myHand is ONLY ever set from the server's deal_hand event.
+    //  No preview / client-side hand generation at all.
+    // ──────────────────────────────────────────────────────────
+    let myHand             = [];          // filled exclusively by deal_hand
+    let serverHandReceived = false;       // true once deal_hand arrives
+    let unveiled           = false;       // true once player clicks "Unveil cards"
+    let readyPlayers       = new Set();   // tracks which players clicked "Let's play!"
+
+    // All player names (for the waiting overlay)
+    let allPlayers = JSON.parse(sessionStorage.getItem('show_players') || '[]');
+    if (allPlayers.length === 0) {
+      for (let i = 0; i < maxPlayers; i++) {
+        allPlayers.push({ name: 'Player ' + (i + 1) });
+      }
+    }
+
+    // ── Build placeholder card DOM (face-down) while waiting for server hand
+    function renderPlaceholderCards() {
+      const cardsRow = document.getElementById('cardsRow');
+      cardsRow.innerHTML = '';
+      for (let i = 0; i < maxPlayers; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'card-wrap';
+        wrap.innerHTML = `
+          <div class="card-inner">
+            <div class="card-front">
+              <img src="assets/assets/images/red paper.png" alt="Card" />
+            </div>
+            <div class="card-back">
+              <div class="card-icon">🃏</div>
+              <div class="card-label">...</div>
+            </div>
+          </div>
+        `;
+        cardsRow.appendChild(wrap);
+      }
+    }
+
+    // ── Render actual cards (only called after server hand arrives)
+    function renderCards(hand) {
+      const cardsRow = document.getElementById('cardsRow');
+      cardsRow.innerHTML = '';
+      hand.forEach((card) => {
+        const wrap = document.createElement('div');
+        wrap.className    = 'card-wrap';
+        wrap.dataset.uid  = card.uniqueId;
+        wrap.dataset.item = card.itemIdx;
+
+        const icon = card.icon || getIconForLabel(card.label);
+
+        wrap.innerHTML = `
+          <div class="card-inner">
+            <div class="card-front">
+              <img src="assets/assets/images/red paper.png" alt="Card" />
+            </div>
+            <div class="card-back">
+              <div class="card-icon">${icon}</div>
+              <div class="card-label">${card.label}</div>
+            </div>
+          </div>
+        `;
+        cardsRow.appendChild(wrap);
+      });
+    }
+
+    // ── Try to show "Let's play!" — only when BOTH unveiled AND server hand received
+    function tryShowProceed() {
+      if (unveiled && serverHandReceived) {
+        document.getElementById('proceedBtn').classList.add('visible');
+      }
+    }
+
+    // ── Video → Card phase transition
+    const videoEl    = document.getElementById('chitsVideo');
+    const videoPhase = document.getElementById('videoPhase');
+    const cardPhase  = document.getElementById('cardPhase');
+
+    function switchToCardPhase() {
+      videoPhase.classList.add('fade-out');
+      setTimeout(() => {
+        videoPhase.style.display = 'none';
+        cardPhase.classList.add('visible');
+
+        // Show placeholder cards with drop animation
+        const cardWraps = document.querySelectorAll('.card-wrap');
+        cardWraps.forEach((cw, i) => {
+          cw.style.animation = `cardDrop 0.45s cubic-bezier(0.34,1.56,0.64,1) ${i * 120}ms forwards`;
+        });
+
+        // Show syncing badge if server hand not yet received
+        if (!serverHandReceived) {
+          document.getElementById('waitingBadge').classList.add('visible');
+        }
+      }, 800);
+    }
+
+    videoEl.addEventListener('ended', switchToCardPhase);
+
+    let fallbackTimer = setTimeout(() => {
+      if (!cardPhase.classList.contains('visible')) switchToCardPhase();
+    }, 8000);
+
+    videoEl.addEventListener('play',  () => clearTimeout(fallbackTimer));
+    videoEl.addEventListener('error', switchToCardPhase);
+
+    videoEl.play().catch(() => {});
+
+    // Render placeholder cards immediately so layout is set
+    renderPlaceholderCards();
+
+    // ── Unveil cards (flip them)
+    function unveilCards() {
+      if (unveiled) return;
+      if (!serverHandReceived) return;  // safety: shouldn't be possible since btn is disabled
+      unveiled = true;
+
+      const btn       = document.getElementById('unveilBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Revealing...';
+
+      const cardWraps = document.querySelectorAll('.card-wrap');
+      cardWraps.forEach((cw, i) => {
+        setTimeout(() => {
+          cw.classList.add('flipped');
+        }, i * 220);
+      });
+
+      // After last card flips, try to show proceed
+      setTimeout(() => {
+        tryShowProceed();
+      }, cardWraps.length * 220 + 400);
+    }
+
+    // ── Render waiting overlay player list
+    function renderWaitingOverlay() {
+      const list = document.getElementById('waitingPlayersList');
+      list.innerHTML = '';
+      allPlayers.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'waiting-player-row';
+        row.id = `waiting-row-${i}`;
+        const isReady = readyPlayers.has(i);
+        row.innerHTML = `
+          <div class="ready-dot ${isReady ? 'ready' : ''}" id="ready-dot-${i}"></div>
+          <span>${p.name || ('Player ' + (i + 1))}${i === playerIndex ? ' (you)' : ''}</span>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    // ── "Let's play!" clicked — tell server this player is ready
+    function onProceedClick() {
+      if (!serverHandReceived) return;
+
+      // Save the authoritative hand to sessionStorage
+      sessionStorage.setItem('show_hand', JSON.stringify(myHand));
+
+      // Show waiting overlay
+      renderWaitingOverlay();
+      document.getElementById('waitingOverlay').classList.add('visible');
+
+      // Tell server this player is ready
+      socket.emit('player_ready', { code, playerIndex });
+
+      // Mark ourselves as ready in UI immediately
+      readyPlayers.add(playerIndex);
+      const dot = document.getElementById(`ready-dot-${playerIndex}`);
+      if (dot) dot.classList.add('ready');
+    }
+
+    // ── Socket
+    const socket = io();
+
+    socket.on('connect', () => {
+      socket.emit('register', {
+        code,
+        playerIndex,
+        profilePic: sessionStorage.getItem('show_profilePic') || ''
+      });
+    });
+
+    // ──────────────────────────────────────────────────────────
+    //  deal_hand — THE ONLY source of card truth.
+    //  Sets myHand, persists to sessionStorage, updates UI.
+    // ──────────────────────────────────────────────────────────
+    socket.on('deal_hand', ({ hand, roundLabels, numPlayers }) => {
+      // Enrich with icons (server sends labels only)
+      myHand = hand.map(card => ({
+        ...card,
+        icon: getIconForLabel(card.label)
+      }));
+
+      // Always persist immediately — this is the authoritative hand
+      sessionStorage.setItem('show_hand', JSON.stringify(myHand));
+      serverHandReceived = true;
+
+      // Hide syncing badge
+      document.getElementById('waitingBadge').classList.remove('visible');
+
+      // Enable unveil button
+      document.getElementById('unveilBtn').disabled = false;
+
+      if (!unveiled) {
+        // Replace placeholder cards with real server cards (still face-down)
+        renderCards(myHand);
+        // Re-trigger drop animation if card phase is already visible
+        if (cardPhase.classList.contains('visible')) {
+          document.querySelectorAll('.card-wrap').forEach((cw, i) => {
+            cw.style.animation = 'none';
+            void cw.offsetWidth;
+            cw.style.animation = `cardDrop 0.45s cubic-bezier(0.34,1.56,0.64,1) ${i * 120}ms forwards`;
+          });
+        }
+      } else {
+        // Edge case: deal_hand arrived after player already unveiled
+        // Re-render with real cards and flip them
+        renderCards(myHand);
+        document.querySelectorAll('.card-wrap').forEach((cw, i) => {
+          cw.style.animation = `cardDrop 0.45s cubic-bezier(0.34,1.56,0.64,1) ${i * 120}ms forwards`;
+          setTimeout(() => cw.classList.add('flipped'), i * 220 + 400);
+        });
+        // Show proceed after all flipped
+        setTimeout(() => {
+          tryShowProceed();
+        }, myHand.length * 220 + 800);
+      }
+    });
+
+    // ── Another player became ready — update waiting overlay
+    socket.on('player_ready_update', ({ readyIndex }) => {
+      readyPlayers.add(readyIndex);
+      const dot = document.getElementById(`ready-dot-${readyIndex}`);
+      if (dot) dot.classList.add('ready');
+    });
+
+    // ── All players ready — server starts the game → navigate
+    socket.on('all_ready', () => {
+      // Ensure hand is saved before navigating
+      if (myHand.length > 0) {
+        sessionStorage.setItem('show_hand', JSON.stringify(myHand));
+      }
+      window.location.href = 'main-game.html';
+    });
+
+    // ── Lobby player list updates (names arriving)
+    socket.on('lobby_update', ({ players }) => {
+      if (players) {
+        allPlayers = players;
+        // Refresh waiting overlay if it's open
+        if (document.getElementById('waitingOverlay').classList.contains('visible')) {
+          renderWaitingOverlay();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

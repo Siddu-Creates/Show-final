@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Join</title>
+  <style>
+    @font-face { font-family: 'LuckiestGuy';     src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf') format('truetype'); }
+    @font-face { font-family: 'PoppinsSemiBold'; src: url('assets/assets/fonts/Poppins-SemiBold.ttf')   format('truetype'); font-weight: 600; }
+    @font-face { font-family: 'PoppinsRegular';  src: url('assets/assets/fonts/Poppins-Regular.ttf')    format('truetype'); font-weight: 400; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; }
+
+    .page  { width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card  { display: flex; flex-direction: column; align-items: center; width: 340px; }
+
+    .mascot {
+      width: 82px; height: auto; margin-bottom: 4px; display: block;
+    }
+
+    .show-title {
+      font-family: 'LuckiestGuy', sans-serif; font-size: 26px; color: #111;
+      letter-spacing: 0.06em; line-height: 1; text-align: center;
+      user-select: none; margin-bottom: 36px;
+    }
+
+    .input-group { display: flex; flex-direction: column; gap: 14px; width: 100%; margin-bottom: 32px; }
+
+    .input-field {
+      width: 100%; height: 52px; border: 2px solid #111; border-radius: 12px;
+      padding: 0 18px; font-family: 'PoppinsRegular', sans-serif; font-size: 15px;
+      color: #111; background: #fff; outline: none; transition: box-shadow 0.15s ease;
+    }
+    .input-field::placeholder { color: #999; }
+    .input-field:focus { box-shadow: 0 0 0 3px rgba(17,17,17,0.08); }
+
+    /* ── UPLOAD ROW — UI identical to create.html ── */
+    .upload-row {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 34px; cursor: pointer; user-select: none;
+    }
+    .upload-icon    { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
+    .upload-preview { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; display: none; border: 2px solid #111; }
+    .upload-label   { font-family: 'PoppinsRegular', sans-serif; font-size: 16px; color: #111; }
+    #fileInput      { display: none; }
+
+    .btn-join {
+      width: 200px; height: 52px; background: #22c55e; color: #fff; border: none;
+      border-radius: 999px; font-family: 'PoppinsSemiBold', sans-serif; font-size: 20px;
+      font-weight: 600; cursor: pointer; outline: none;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-join:hover    { background: #16a34a; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(34,197,94,0.35); }
+    .btn-join:active   { transform: translateY(0); box-shadow: none; }
+    .btn-join:disabled { background: #86efac; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .error-msg {
+      margin-top: 12px; font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px; color: #ef4444; text-align: center; min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+
+      <img class="mascot" src="assets/assets/images/squ.webp" alt="SHOW mascot" />
+      <h1 class="show-title">SHOW</h1>
+
+      <div class="input-group">
+        <input class="input-field" type="text"  id="nameInput" placeholder="Enter your name"    autocomplete="off" />
+        <input class="input-field" type="text"  id="codeInput" placeholder="Enter Game Code"    autocomplete="off"
+               style="text-transform:uppercase;" maxlength="4" />
+      </div>
+
+      <!-- Upload row — UI unchanged, processes locally -->
+      <div class="upload-row" onclick="document.getElementById('fileInput').click()">
+        <img class="upload-icon"    id="uploadIcon"    src="assets/assets/images/upload.png" alt="Upload" />
+        <img class="upload-preview" id="uploadPreview" alt="Profile" />
+        <span class="upload-label">upload your profile</span>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" onchange="handleFileUpload(event)" />
+
+      <button class="btn-join" id="joinBtn" onclick="handleJoin()">Join</button>
+      <p class="error-msg" id="errorMsg"></p>
+
+    </div>
+  </div>
+
+  <script>
+    // ── Holds the Base64 data URL after resize; null if no image chosen ──
+    let profilePicBase64 = null;
+
+    // ── Resize any chosen image to an 80×80 JPEG data URL (≈3–6 KB) ──
+    // No file is ever sent to the server — stays entirely in the browser.
+    function resizeImageToBase64(file) {
+      return new Promise((resolve) => {
+        if (!file) { resolve(null); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const SIZE = 80;
+            const canvas = document.createElement('canvas');
+            canvas.width  = SIZE;
+            canvas.height = SIZE;
+            const ctx = canvas.getContext('2d');
+            // Cover-crop: scale so the shorter dimension fills 80px, then centre
+            const scale = Math.max(SIZE / img.width, SIZE / img.height);
+            const w = img.width  * scale;
+            const h = img.height * scale;
+            ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          };
+          img.onerror = () => resolve(null);
+          img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ── When user picks a file: resize it, store Base64, show preview ──
+    async function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      profilePicBase64 = await resizeImageToBase64(file);
+
+      if (profilePicBase64) {
+        document.getElementById('uploadPreview').src          = profilePicBase64;
+        document.getElementById('uploadPreview').style.display = 'block';
+        document.getElementById('uploadIcon').style.display   = 'none';
+      }
+    }
+
+    // ── Join room: send only text fields to server, Base64 stays in browser ──
+    async function handleJoin() {
+      const name  = document.getElementById('nameInput').value.trim();
+      const code  = document.getElementById('codeInput').value.trim().toUpperCase();
+      const errEl = document.getElementById('errorMsg');
+      const btn   = document.getElementById('joinBtn');
+      errEl.textContent = '';
+
+      if (!name)                        return (errEl.textContent = 'Please enter your name.');
+      if (!code || code.length !== 4)   return (errEl.textContent = 'Please enter a valid 4-letter game code.');
+
+      btn.disabled    = true;
+      btn.textContent = 'Joining...';
+
+      try {
+        // Only text fields — no file, no FormData, no multer needed
+        const res = await fetch('/api/join-room', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ name, code })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errEl.textContent = data.error || 'Failed to join room.';
+          btn.disabled    = false;
+          btn.textContent = 'Join';
+          return;
+        }
+
+        // Save everything to sessionStorage.
+        // profilePicBase64 is either a data URL string or null (no upload).
+        // The game screen will use null as the signal to show a default avatar.
+        sessionStorage.setItem('show_code',        data.code);
+        sessionStorage.setItem('show_playerIndex', String(data.playerIndex));
+        sessionStorage.setItem('show_name',        name);
+        sessionStorage.setItem('show_profilePic',  profilePicBase64 || '');
+        sessionStorage.setItem('show_isCreator',   'false');
+        sessionStorage.setItem('show_maxPlayers',  String(data.maxPlayers));
+        sessionStorage.setItem('show_topic',       data.topic);
+
+        window.location.href = 'next1.html';
+
+      } catch (err) {
+        errEl.textContent = 'Server error. Is the server running?';
+        btn.disabled    = false;
+        btn.textContent = 'Join';
+      }
+    }
+  </script>
+</body>
+</html>

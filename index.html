@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intro</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      opacity: 1;
+      transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #scene.fade-out {
+      opacity: 0;
+    }
+
+    #intro-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="scene">
+    <video
+      id="intro-video"
+      src="assets/assets/videos/showIntro.mp4"
+      autoplay
+      muted
+      playsinline
+      preload="auto"
+    ></video>
+  </div>
+
+  <script>
+    (function () {
+      const video = document.getElementById('intro-video');
+      const scene = document.getElementById('scene');
+      const REDIRECT = 'join.html';
+      const FADE_DURATION = 1200; // ms — matches CSS transition
+
+      function doRedirect() {
+        scene.classList.add('fade-out');
+        setTimeout(function () {
+          window.location.href = REDIRECT;
+        }, FADE_DURATION);
+      }
+
+      // Primary: ended event
+      video.addEventListener('ended', doRedirect);
+
+      // Fallback: if autoplay is blocked, redirect after 8s
+      var autoplayTimeout = setTimeout(function () {
+        if (video.paused) {
+          doRedirect();
+        }
+      }, 8000);
+
+      video.addEventListener('play', function () {
+        clearTimeout(autoplayTimeout);
+      });
+
+      // Attempt play explicitly for stricter browsers
+      var playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(function () {
+          // Autoplay blocked — fall through to timeout redirect
+        });
+      }
+    })();
+  </script>
+
+</body>
+</html>

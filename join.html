@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW</title>
+  <style>
+    @font-face {
+      font-family: 'LuckiestGuy';
+      src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+  font-family: 'PoppinsSemiBold';
+  src: url('assets/assets/fonts/Poppins-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* NO SCROLL — single screen */
+      background: #ffffff;
+    }
+
+    /* ─────────────────────────────────────────
+       FULL PAGE CONTAINER
+       Uses a column flex so:
+         - top section (title + buttons) takes natural height
+         - video section fills the rest
+    ───────────────────────────────────────── */
+    .page {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ─────────────────────────────────────────
+       TOP SECTION — title + buttons
+       
+       ↕ VERTICAL SPACING: change "padding-top" to move the whole block up/down
+       ↔ buttons are center-aligned automatically
+    ───────────────────────────────────────── */
+    .top-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 40px;        /* ← move entire top block UP/DOWN */
+      gap: 70px;                /* ← gap between title and button group */
+      flex-shrink: 0;
+    }
+
+    /* ─────────────────────────────────────────
+       SHOW TITLE
+       
+       ↕ Extra space below title vs buttons: controlled by .top-section gap
+       🔤 Font size: change font-size px below
+    ───────────────────────────────────────── */
+    .show-title {
+      font-family: 'LuckiestGuy', 'Impact', sans-serif;
+      font-size: 30px;          /* ← TITLE FONT SIZE — adjust here */
+      letter-spacing: 0.04em;
+      color: #111111;
+      line-height: 1;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* ─────────────────────────────────────────
+       BUTTON GROUP
+       
+       gap: space between the two buttons
+    ───────────────────────────────────────── */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;                /* ← gap between the two buttons */
+    }
+
+    /* ─────────────────────────────────────────
+       BUTTONS
+       
+       width / height: exact Figma spec (330 x 54)
+       font-size: button label size
+    ───────────────────────────────────────── */
+    .btn {
+      width: 320px;             /* ← BUTTON WIDTH (Figma: 330px) */
+      height: 50px;             /* ← BUTTON HEIGHT (Figma: 54px) */
+      background: #111111;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 18px;          /* ← BUTTON LABEL FONT SIZE */
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      outline: none;
+    }
+
+    .btn:hover {
+      background: #2a2a2a;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    /* ─────────────────────────────────────────
+       VIDEO SECTION
+       Fills remaining space below the top section.
+       Video scales as a unit — width & height together,
+       NO cropping. Aspect ratio is always preserved.
+
+       ╔══════════════════════════════════════╗
+       ║  TO ADJUST VIDEO SIZE:               ║
+       ║  Change BOTH values on .video-wrapper ║
+       ║                                      ║
+       ║  width:  1100px  ← wider / narrower  ║
+       ║  height:  460px  ← taller / shorter  ║
+       ║                                      ║
+       ║  The video will scale to fit inside  ║
+       ║  this box WITHOUT any cropping.      ║
+       ╚══════════════════════════════════════╝
+
+       Other controls:
+       - Move video LEFT/RIGHT : change margin-left on .video-wrapper
+                                 e.g. margin-left: -50px  (shifts left)
+       - Gap between buttons & video : change margin-top on .video-section
+    ───────────────────────────────────────── */
+    .video-section {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: flex-end;     /* video anchors to bottom of screen */
+      justify-content: center;
+      overflow: hidden;
+      margin-top: 5px;          /* ← gap between buttons and video */
+    }
+
+    .video-wrapper {
+      width: 900px;             /* ← VIDEO WIDTH  — change this */
+      height: 460px;             /* ← VIDEO HEIGHT — change this */
+      flex-shrink: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .video-wrapper video {
+      width: 100%;               /* fills the wrapper width */
+      height: 100%;              /* fills the wrapper height */
+      object-fit: contain;       /* NO crop — full video visible */
+      object-position: bottom center;
+      display: block;
+    }
+
+    /* ─────────────────────────────────────────
+       RESPONSIVE SCALING FOR DIFFERENT DESKTOPS
+       (keeps single-screen, no scroll)
+    ───────────────────────────────────────── */
+
+    /* Large monitor 1600px+ */
+    @media (min-width: 1600px) {
+      .show-title    { font-size: 120px; }
+      .top-section   { padding-top: 80px; gap: 32px; }
+      .btn           { width: 400px; height: 64px; font-size: 20px; }
+      .video-wrapper { width: 1400px; height: 580px; }
+    }
+
+    /* Medium desktop 1280px-1599px: default values above apply */
+
+    /* Small desktop / laptop 1024px-1279px */
+    @media (max-width: 1279px) {
+      .show-title    { font-size: 80px; }
+      .top-section   { padding-top: 48px; gap: 20px; }
+      .btn           { width: 300px; height: 50px; font-size: 16px; }
+      .video-wrapper { width: 900px; height: 380px; }
+    }
+
+    /* Tablet 768px-1023px */
+    @media (max-width: 1023px) {
+      .show-title    { font-size: 64px; }
+      .top-section   { padding-top: 36px; gap: 18px; }
+      .btn           { width: 280px; height: 48px; font-size: 15px; }
+      .video-wrapper { width: 720px; height: 300px; }
+    }
+
+    /* Mobile under 768px */
+    @media (max-width: 767px) {
+      .show-title    { font-size: 48px; }
+      .top-section   { padding-top: 28px; gap: 16px; }
+      .btn           { width: 240px; height: 44px; font-size: 14px; }
+      .video-wrapper { width: 100%; height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Title + Buttons -->
+    <div class="top-section">
+      <h1 class="show-title">SHOW</h1>
+      <div class="btn-group">
+        <button class="btn" onclick="handleJoin()">Join a game</button>
+        <button class="btn" onclick="handleCreate()">Create a game</button>
+      </div>
+    </div>
+
+    <!-- Video fills the rest of the screen -->
+    <div class="video-section">
+      <div class="video-wrapper">
+        <video
+          src="assets/assets/videos/join_page.mp4"
+          autoplay
+          muted
+          loop
+          playsinline
+        ></video>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function handleJoin()    {
+  window.location.href = 'next.html';
+}
+    function handleCreate() { window.location.href = 'create.html';}
+  </script>
+</body>
+</html>

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Lobby</title>
+  <style>
+    @font-face { font-family: 'LuckiestGuy';     src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf')  format('truetype'); }
+    @font-face { font-family: 'PoppinsSemiBold'; src: url('assets/assets/fonts/Poppins-SemiBold.ttf')     format('truetype'); font-weight: 600; }
+    @font-face { font-family: 'PoppinsRegular';  src: url('assets/assets/fonts/Poppins-Regular.ttf')      format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'PoppinsMedium';   src: url('assets/assets/fonts/Poppins-Medium.ttf')       format('truetype'); font-weight: 500; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #FDD344;
+      font-family: 'PoppinsRegular', sans-serif;
+    }
+
+    .page {
+      width: 100%; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* ── TOP-LEFT: SHOW ── */
+    .show-title {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 26px;
+      color: #111;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      user-select: none;
+      position: absolute;
+      top: 28px;
+      left: 36px;
+    }
+
+    /* ── TOP-RIGHT: LOGOUT ── */
+    .logout-btn {
+      position: absolute;
+      top: 20px;
+      right: 32px;
+      width: 44px;
+      height: 44px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease;
+    }
+    .logout-btn:hover { transform: scale(1.12); }
+    .logout-btn img { width: 36px; height: 36px; object-fit: contain; }
+
+    /* ── CENTER CONTENT ── */
+    .center-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+      gap: 0;
+      padding-top: 60px;
+    }
+
+    .lobby-gif {
+      width: 300px;
+      height: auto;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    /* Room code + player count */
+    .room-info-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .room-code-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .room-code-label {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 11px;
+      color: #8a6b00;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .room-code-value {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 26px;
+      color: #111;
+      letter-spacing: 0.14em;
+    }
+
+    .divider-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #8a6b00;
+      opacity: 0.5;
+      margin-top: 4px;
+    }
+
+    .player-count-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .player-count-label {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 11px;
+      color: #8a6b00;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .player-count-value {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 26px;
+      color: #111;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── SETTINGS CARD ── */
+    .settings-card {
+      background: transparent;
+      border: none;
+      border-radius: 20px;
+      padding: 20px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 340px;
+      margin-bottom: 20px;
+    }
+
+    .select-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    .select-wrap select {
+      width: 100%;
+      height: 50px;
+      border: 2.5px solid #111;
+      border-radius: 12px;
+      background: transparent;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 15px;
+      color: #111;
+      padding: 0 40px 0 18px;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .select-wrap select:focus {
+      border-color: #111;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.08);
+    }
+    .select-wrap select:disabled {
+      background: transparent;
+      color: #555;
+      cursor: not-allowed;
+      border-color: rgba(0,0,0,0.35);
+    }
+    .select-wrap select option {
+      background: #FDD344;
+      color: #111;
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      font-size: 14px;
+      color: #555;
+    }
+
+    /* Non-owner read-only hint */
+    .readonly-hint {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 11px;
+      color: #8a6b00;
+      text-align: center;
+      opacity: 0.8;
+      display: none;
+    }
+    .readonly-hint.visible { display: block; }
+
+    /* ── START BUTTON ── */
+    .btn-start-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-start {
+      width: 200px;
+      height: 54px;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      letter-spacing: 0.01em;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-start:hover  { background: #2a2a2a; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.22); }
+    .btn-start:active { transform: translateY(0); box-shadow: none; }
+    .btn-start:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Non-owner waiting text */
+    .waiting-text {
+      font-family: 'PoppinsMedium', sans-serif;
+      font-size: 14px;
+      color: #555;
+      text-align: center;
+      animation: waitPulse 1.6s ease-in-out infinite alternate;
+      display: none;
+    }
+    .waiting-text.visible { display: block; }
+    @keyframes waitPulse {
+      from { opacity: 0.5; }
+      to   { opacity: 1; }
+    }
+
+    /* Waiting dots */
+    .waiting-dots {
+      display: none;
+      gap: 5px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .waiting-dots.visible { display: flex; }
+    .w-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #555;
+      animation: dotBounce 1.2s ease-in-out infinite;
+    }
+    .w-dot:nth-child(2) { animation-delay: 0.18s; }
+    .w-dot:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes dotBounce {
+      0%,80%,100% { transform: translateY(0); background: rgba(0,0,0,0.25); }
+      40%          { transform: translateY(-6px); background: #111; }
+    }
+
+    /* ── EXIT MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: #fff; border-radius: 22px;
+      padding: 30px 32px; width: 340px;
+      text-align: center;
+      transform: scale(0.92); transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .modal-overlay.open .modal-box { transform: scale(1); }
+    .modal-title { font-family: 'PoppinsSemiBold', sans-serif; font-size: 18px; color: #111; margin-bottom: 6px; }
+    .modal-sub   { font-family: 'PoppinsRegular', sans-serif; font-size: 13px; color: #777; margin-bottom: 22px; }
+    .modal-btns  { display: flex; flex-direction: column; gap: 10px; }
+    .modal-btn {
+      width: 100%; height: 48px;
+      border-radius: 12px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 15px; cursor: pointer;
+      border: 2px solid #111;
+      transition: all 0.14s;
+    }
+    .modal-btn.danger  { background: #ef4444; color: #fff; border-color: #ef4444; }
+    .modal-btn.neutral { background: #fff; color: #111; }
+    .modal-btn.cancel  { background: #f5f5f5; color: #777; border-color: #e0e0e0; }
+    .modal-btn:hover   { transform: translateY(-1px); opacity: 0.92; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 26px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #111; color: #fff;
+      padding: 10px 22px;
+      border-radius: 99px;
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 600;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── TRANSITION OVERLAY ── */
+    #transitionOverlay {
+      position: fixed; inset: 0;
+      background: #FDD344;
+      z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.7s cubic-bezier(0.25,1,0.5,1);
+    }
+    #transitionOverlay.active { opacity: 1; pointer-events: all; }
+    .trans-text {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 26px; color: #111;
+      letter-spacing: 0.18em;
+      opacity: 0; transform: translateY(10px);
+      transition: all 0.7s cubic-bezier(0.25,1,0.5,1) 0.25s;
+    }
+    #transitionOverlay.active .trans-text { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 767px) {
+      .show-title    { font-size: 20px; top: 20px; left: 20px; }
+      .logout-btn    { top: 16px; right: 18px; }
+      .lobby-gif     { width: 150px; }
+      .room-code-value { font-size: 22px; }
+      .settings-card { width: 300px; padding: 16px 20px; }
+      .btn-start     { width: 170px; height: 48px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- TOP LEFT -->
+  <h1 class="show-title">SHOW</h1>
+
+  <!-- TOP RIGHT: logout -->
+  <button class="logout-btn" id="logoutBtn" onclick="openExitModal()" title="Leave room">
+    <img src="assets/assets/images/logout.png" alt="Leave" />
+  </button>
+
+  <!-- CENTER -->
+  <div class="center-content">
+
+    <img class="lobby-gif" src="assets/assets/images/lobby.gif" alt="Lobby" />
+
+    <!-- Room code + player count -->
+    <div class="room-info-row">
+      <div class="room-code-badge">
+        <span class="room-code-label">Room Code</span>
+        <strong class="room-code-value" id="roomCodeDisplay">----</strong>
+      </div>
+      <div class="divider-dot"></div>
+      <div class="player-count-badge">
+        <span class="player-count-label">Players</span>
+        <strong class="player-count-value" id="playerCountDisplay">-/-</strong>
+      </div>
+    </div>
+
+    <!-- Settings card -->
+    <div class="settings-card">
+
+      <!-- Number of Players (2–10) -->
+      <div class="select-wrap">
+        <select id="numPlayersSelect" onchange="onSettingsChange()">
+          <option value="" disabled>Number of Players</option>
+          <option value="2">2 Players</option>
+          <option value="3">3 Players</option>
+          <option value="4">4 Players</option>
+          <option value="5">5 Players</option>
+          <option value="6">6 Players</option>
+          <option value="7">7 Players</option>
+          <option value="8">8 Players</option>
+          <option value="9">9 Players</option>
+          <option value="10">10 Players</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+
+      <!-- Topic -->
+      <div class="select-wrap">
+        <select id="topicSelect" onchange="onSettingsChange()">
+          <option value="" disabled>Select Topic</option>
+          <option value="chocolates">🍫 Chocolates</option>
+          <option value="movies">🎬 Movies</option>
+          <option value="countries">🌍 Countries</option>
+          <option value="cartoons">🐱 Cartoons</option>
+          <option value="fruits">🍎 Fruits</option>
+          <option value="animals">🦁 Animals</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+
+      <!-- Start Player (populated dynamically) -->
+      <div class="select-wrap">
+        <select id="startPlayerSelect" onchange="onSettingsChange()">
+          <option value="" disabled selected>Select Start Player</option>
+          <!-- Options injected by renderStartPlayerOptions() -->
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+
+      <span class="readonly-hint" id="readonlyHint">
+        Only the room owner can change settings
+      </span>
+
+    </div>
+
+    <!-- Start (owner) / Waiting (non-owner) -->
+    <div class="btn-start-wrap">
+      <button class="btn-start" id="startBtn" onclick="handleStart()" style="display:none">
+        Start
+      </button>
+      <div class="waiting-text" id="waitingText">Waiting for the owner to start...</div>
+      <div class="waiting-dots" id="waitingDots">
+        <div class="w-dot"></div>
+        <div class="w-dot"></div>
+        <div class="w-dot"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EXIT MODAL -->
+<div class="modal-overlay" id="exitModal" onclick="closeModalOnBg(event)">
+  <div class="modal-box">
+    <div class="modal-title" id="exitModalTitle">Leave the room?</div>
+    <div class="modal-sub"   id="exitModalSub">Choose an option below</div>
+    <div class="modal-btns"  id="exitModalBtns"></div>
+  </div>
+</div>
+
+<!-- TRANSITION OVERLAY -->
+<div id="transitionOverlay">
+  <div class="trans-text">Starting...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // ── Session ──
+  const code        = sessionStorage.getItem('show_code')        || '';
+  const playerIndex = parseInt(sessionStorage.getItem('show_playerIndex') || '0');
+  const isCreator   = sessionStorage.getItem('show_isCreator')   === 'true';
+  const myName      = sessionStorage.getItem('show_name')        || '';
+  const profilePic  = sessionStorage.getItem('show_profilePic')  || '';
+  const maxPlayers  = parseInt(sessionStorage.getItem('show_maxPlayers')  || '4');
+  const topic       = sessionStorage.getItem('show_topic')       || 'chocolates';
+
+  // Current live players list (updated via lobby_update)
+  let currentPlayers = JSON.parse(sessionStorage.getItem('show_players') || '[]');
+
+  // Show room code
+  document.getElementById('roomCodeDisplay').textContent = code || '----';
+
+  // ── Init selects with last known values ──
+  const numSel         = document.getElementById('numPlayersSelect');
+  const topicSel       = document.getElementById('topicSelect');
+  const startPlayerSel = document.getElementById('startPlayerSelect');
+
+  numSel.value   = String(maxPlayers);
+  topicSel.value = topic;
+
+  // Populate start player dropdown from saved players
+  renderStartPlayerOptions(currentPlayers);
+
+  // ── Owner vs non-owner UI ──
+  if (isCreator) {
+    document.getElementById('startBtn').style.display  = 'block';
+    document.getElementById('waitingText').classList.remove('visible');
+    document.getElementById('waitingDots').classList.remove('visible');
+    document.getElementById('readonlyHint').classList.remove('visible');
+    numSel.disabled         = false;
+    topicSel.disabled       = false;
+    startPlayerSel.disabled = false;
+  } else {
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('waitingText').classList.add('visible');
+    document.getElementById('waitingDots').classList.add('visible');
+    document.getElementById('readonlyHint').classList.add('visible');
+    numSel.disabled         = true;
+    topicSel.disabled       = true;
+    startPlayerSel.disabled = true;
+  }
+
+  // ── Init player count display ──
+  const connectedCount = currentPlayers.filter(p => p).length || 1;
+  document.getElementById('playerCountDisplay').textContent = connectedCount + '/' + maxPlayers;
+
+  // ── Socket ──
+  const socket = io();
+
+  // Flag to suppress the disconnect toast when we ourselves triggered the navigation
+  let navigatingAway = false;
+
+  socket.on('connect', () => {
+    socket.emit('register', { code, playerIndex, profilePic: profilePic || '' });
+  });
+
+  // Lobby player count update
+  socket.on('lobby_update', ({ currentPlayers: cp, maxPlayers: max, players }) => {
+    const connected = cp || (players ? players.filter(p => p.socketId !== null).length : 1);
+    document.getElementById('playerCountDisplay').textContent =
+      connected + '/' + (max || maxPlayers);
+
+    if (players) {
+      currentPlayers = players;
+      sessionStorage.setItem('show_players', JSON.stringify(players));
+      // Refresh start player dropdown with latest player list
+      renderStartPlayerOptions(players);
+    }
+  });
+
+  // Owner broadcasts settings change to other players
+  socket.on('settings_update', ({ numPlayers: np, topic: t }) => {
+    if (!isCreator) {
+      if (np) numSel.value   = String(np);
+      if (t)  topicSel.value = t;
+    }
+  });
+
+  // ── new_game_starting: server confirmed reset, redirect everyone to waiting.html ──
+  socket.on('new_game_starting', ({ numPlayers: np, topic: t, players }) => {
+    navigatingAway = true;
+    // Save updated settings
+    if (np)      sessionStorage.setItem('show_maxPlayers', String(np));
+    if (t)       sessionStorage.setItem('show_topic', t);
+    if (players) sessionStorage.setItem('show_players', JSON.stringify(players));
+
+    const overlay = document.getElementById('transitionOverlay');
+    overlay.classList.add('active');
+    setTimeout(() => { window.location.href = 'waiting.html'; }, 1400);
+  });
+
+  // ── game_started: this fires on the VERY FIRST game (from waiting.html's Start button)
+  //    lobby.html should not receive this, but guard anyway ──
+  socket.on('game_started', () => {
+    navigatingAway = true;
+    sessionStorage.setItem('show_maxPlayers', numSel.value   || String(maxPlayers));
+    sessionStorage.setItem('show_topic',      topicSel.value || topic);
+    const overlay = document.getElementById('transitionOverlay');
+    overlay.classList.add('active');
+    setTimeout(() => { window.location.href = 'waiting.html'; }, 1400);
+  });
+
+  socket.on('room_closed', () => {
+    showToast('Room closed by the host.');
+    setTimeout(() => { window.location.href = 'join.html'; }, 1500);
+  });
+
+  // Only show disconnect toast during an active game — not in lobby
+  socket.on('player_disconnected', ({ playerIndex: pi }) => {
+    if (navigatingAway) return;
+    // Update the player count display
+    if (currentPlayers[pi]) {
+      showToast(currentPlayers[pi].name + ' disconnected.');
+      // Update local count
+      const countEl = document.getElementById('playerCountDisplay');
+      const parts   = countEl.textContent.split('/');
+      const cur     = Math.max(0, parseInt(parts[0]) - 1);
+      countEl.textContent = cur + '/' + (parts[1] || maxPlayers);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    if (!navigatingAway) showToast('Connection lost. Reconnecting...');
+  });
+
+  socket.on('ownership_transferred', ({ newOwnerIndex }) => {
+    if (newOwnerIndex === playerIndex) {
+      sessionStorage.setItem('show_isCreator', 'true');
+      location.reload();
+    }
+  });
+
+  // ── Owner: broadcast settings change ──
+  function onSettingsChange() {
+    if (!isCreator) return;
+    socket.emit('lobby_settings_change', {
+      code,
+      numPlayers: parseInt(numSel.value) || maxPlayers,
+      topic:      topicSel.value         || topic
+    });
+  }
+
+  // ── Render start-player dropdown options ──
+  function renderStartPlayerOptions(players) {
+    const sel = document.getElementById('startPlayerSelect');
+    const prevVal = sel.value;
+
+    // Remove all existing player options (keep the disabled placeholder)
+    while (sel.options.length > 1) sel.remove(1);
+
+    if (!players || players.length === 0) return;
+
+    players.forEach((p, i) => {
+      if (!p || !p.name) return;
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = (i === 0 ? '👑 ' : '') + p.name + (i === playerIndex && isCreator ? ' (You)' : '');
+      sel.appendChild(opt);
+    });
+
+    // Restore previous selection if still valid, else default to first player
+    if (prevVal !== '' && sel.querySelector(`option[value="${prevVal}"]`)) {
+      sel.value = prevVal;
+    } else {
+      sel.value = '0'; // default: first player (creator)
+    }
+  }
+
+  // ── Start game ──
+  function handleStart() {
+    const np  = parseInt(numSel.value);
+    const t   = topicSel.value;
+    const sp  = startPlayerSel.value;
+
+    if (!np) { showToast('Please select number of players'); return; }
+    if (!t)  { showToast('Please select a topic');           return; }
+
+    const startPlayerIndex = (sp !== '' && sp !== null) ? parseInt(sp) : 0;
+
+    // Save settings to sessionStorage
+    sessionStorage.setItem('show_maxPlayers', String(np));
+    sessionStorage.setItem('show_topic',      t);
+
+    document.getElementById('startBtn').disabled    = true;
+    document.getElementById('startBtn').textContent = 'Starting...';
+
+    // Emit reset_for_new_game — server will reset state and broadcast new_game_starting
+    // This works for both the first game and subsequent games.
+    socket.emit('reset_for_new_game', {
+      code,
+      numPlayers:       np,
+      topic:            t,
+      startPlayerIndex
+    });
+  }
+
+  // ── Exit modal ──
+  function openExitModal() {
+    const title = document.getElementById('exitModalTitle');
+    const sub   = document.getElementById('exitModalSub');
+    const btns  = document.getElementById('exitModalBtns');
+
+    if (isCreator) {
+      title.textContent = 'You are the Room Owner';
+      sub.textContent   = 'What would you like to do?';
+      btns.innerHTML = `
+        <button class="modal-btn danger"  onclick="ownerCloseRoom()">Close room for everyone</button>
+        <button class="modal-btn neutral" onclick="ownerLeaveRoom()">Leave &amp; pass ownership</button>
+        <button class="modal-btn cancel"  onclick="closeModal()">Cancel</button>
+      `;
+    } else {
+      title.textContent = 'Leave the room?';
+      sub.textContent   = 'You will exit this room.';
+      btns.innerHTML = `
+        <button class="modal-btn danger" onclick="leaveRoom()">Leave</button>
+        <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      `;
+    }
+    document.getElementById('exitModal').classList.add('open');
+  }
+
+  function closeModal()            { document.getElementById('exitModal').classList.remove('open'); }
+  function closeModalOnBg(e)       { if (e.target === document.getElementById('exitModal')) closeModal(); }
+  function ownerCloseRoom()        { navigatingAway = true; socket.emit('close_room',   { code });              window.location.href = 'join.html'; }
+  function ownerLeaveRoom()        { navigatingAway = true; socket.emit('owner_leave',  { code, playerIndex }); window.location.href = 'join.html'; }
+  function leaveRoom()             { navigatingAway = true; socket.emit('player_leave', { code, playerIndex }); window.location.href = 'join.html'; }
+
+  // ── Toast ──
+  let toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+</script>
+</body>
+</html>

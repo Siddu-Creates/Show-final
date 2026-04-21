@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Leaderboard</title>
+  <style>
+    @font-face { font-family: 'LuckiestGuy';     src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf')  format('truetype'); }
+    @font-face { font-family: 'PoppinsSemiBold'; src: url('assets/assets/fonts/Poppins-SemiBold.ttf')     format('truetype'); font-weight: 600; }
+    @font-face { font-family: 'PoppinsRegular';  src: url('assets/assets/fonts/Poppins-Regular.ttf')      format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'PoppinsMedium';   src: url('assets/assets/fonts/Poppins-Medium.ttf')       format('truetype'); font-weight: 500; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #ffffff;
+      overflow: hidden;
+      font-family: 'PoppinsRegular', sans-serif;
+      user-select: none;
+    }
+
+    /* ── RGB TOP BAR (same as main-game.html) ── */
+    .rgb-bar {
+      width: 100%;
+      height: 10px;
+      background: linear-gradient(
+        to right,
+        #ff0000, #ff4000, #ff8000, #ffbf00,
+        #ffff00, #80ff00, #00ff00, #00ff80,
+        #00ffff, #0080ff, #0000ff, #8000ff,
+        #ff00ff, #ff0080, #ff0000
+      );
+      background-size: 200% 100%;
+      animation: rgbSlide 4s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes rgbSlide {
+      0%   { background-position: 0% 0%; }
+      100% { background-position: 200% 0%; }
+    }
+
+    .page-content {
+      width: 100%;
+      height: calc(100vh - 10px);
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    /* ── TITLE ── */
+    .page-title {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 32px;
+      color: #111;
+      letter-spacing: 0.08em;
+      text-align: center;
+      padding: 18px 0 12px;
+      flex-shrink: 0;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      padding: 0 28px;
+      min-height: 0;
+      align-items: start;
+    }
+
+    /* ── LEFT: Players & Scores Table ── */
+    .players-table-box {
+      border: 2px solid #111;
+      border-radius: 16px;
+      padding: 18px 24px;
+      background: #fff;
+      height: 100%;
+      max-height: calc(100vh - 180px);
+      overflow-y: auto;
+    }
+    .players-table-box::-webkit-scrollbar { width: 4px; }
+    .players-table-box::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1.5px solid #eee;
+    }
+    .table-header-players {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 18px;
+      color: #111;
+      letter-spacing: 0.06em;
+    }
+    .table-header-scores {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 18px;
+      color: #111;
+      letter-spacing: 0.06em;
+    }
+
+    .player-score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 6px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      transition: background 0.2s;
+      opacity: 0;
+      transform: translateX(-20px);
+      animation: rowSlideIn 0.4s ease forwards;
+    }
+    .player-score-row:hover { background: #f9f9f9; }
+
+    @keyframes rowSlideIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .row-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .row-rank {
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 15px;
+      color: #555;
+      min-width: 28px;
+    }
+    .row-name {
+      font-family: 'PoppinsMedium', sans-serif;
+      font-size: 16px;
+      color: #111;
+    }
+    .row-name.me-highlight {
+      color: #6366f1;
+      font-family: 'PoppinsSemiBold', sans-serif;
+    }
+    .row-score {
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 16px;
+      color: #111;
+    }
+    .row-score.no-score {
+      color: #bbb;
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px;
+    }
+
+    /* ── RIGHT: Podium Cards ── */
+    .podium-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: calc(100vh - 180px);
+      overflow-y: auto;
+    }
+    .podium-col::-webkit-scrollbar { width: 0; }
+
+    .podium-card {
+      border: 2px solid #2d3270;
+      border-radius: 16px;
+      padding: 18px 12px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(20px) scale(0.92);
+      animation: podiumIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    @keyframes podiumIn {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .podium-card .rank-img {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+    }
+    .podium-card .podium-name {
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 18px;
+      color: #111;
+      text-align: center;
+    }
+    .podium-card .podium-score {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px;
+      color: #888;
+    }
+
+    /* ── BOTTOM: Lobby Button ── */
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 0 18px;
+      flex-shrink: 0;
+    }
+
+    .lobby-btn {
+      height: 56px;
+      padding: 0 60px;
+      border-radius: 14px;
+      background: #111;
+      color: #fff;
+      border: none;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 17px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+    .lobby-btn:hover {
+      background: #2a2a2a;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .lobby-btn:active { transform: translateY(0); }
+
+    /* ── Confetti ── */
+    .confetti-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 10;
+    }
+    .confetti-piece {
+      position: absolute;
+      top: -10px;
+      width: 10px;
+      height: 14px;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="confetti-container" id="confettiContainer"></div>
+
+  <div class="rgb-bar"></div>
+
+  <div class="page-content">
+
+    <div class="page-title">LEADERBOARD</div>
+
+    <div class="main-layout">
+
+      <!-- LEFT: Full players + scores table -->
+      <div class="players-table-box">
+        <div class="table-header">
+          <span class="table-header-players">PLAYERS</span>
+          <span class="table-header-scores">SCORES</span>
+        </div>
+        <div id="playersList"></div>
+      </div>
+
+      <!-- RIGHT: Podium cards (top 1 / 2 / 3 depending on player count) -->
+      <div class="podium-col" id="podiumCol"></div>
+
+    </div>
+
+    <div class="bottom-bar">
+      <button class="lobby-btn" onclick="goLobby()">Lobby</button>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  // ══════════════════════════════════════════════════════
+  //  SESSION DATA
+  // ══════════════════════════════════════════════════════
+  const code        = sessionStorage.getItem('show_code')        || '';
+  const myName      = sessionStorage.getItem('show_name')        || 'Player';
+  const playerIndex = parseInt(sessionStorage.getItem('show_playerIndex') || '0');
+  const maxPlayers  = parseInt(sessionStorage.getItem('show_maxPlayers')  || '4');
+  const numPlayers  = parseInt(sessionStorage.getItem('show_numPlayers')  || String(maxPlayers));
+
+  const maxScore = 1000; // Rank 1 always gets 1000
+
+  // ── How many podium cards to show on the right ──
+  // 2 players → top 1, 3 players → top 2, 4–10 players → top 3
+  function podiumCount(n) {
+    if (n <= 2) return 1;
+    if (n === 3) return 2;
+    return 3;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  SCORE FORMULA
+  //  Rank 1 = 1000, Rank 2 = 900, Rank 3 = 800 ... -100 per rank
+  //  Minimum score = 1000 - (numPlayers - 1) * 100
+  //  e.g. 2 players → min 900 | 3 → 800 | 4 → 700 | 10 → 100
+  // ══════════════════════════════════════════════════════
+  function scoreForRank(rank) {
+    return Math.max(0, maxScore - (rank - 1) * 100);
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  BUILD RANKINGS FROM sessionStorage
+  //  Expected: show_rankings = JSON array from server with
+  //  { playerIndex, playerName, rank, timeTaken, isShowCaller }
+  //  If not present, fall back to show_myRank / show_myScore
+  // ══════════════════════════════════════════════════════
+function buildRankings() {
+    // ── Try server-provided rankings first (most accurate) ──
+    const raw = sessionStorage.getItem('show_rankings');
+    if (raw) {
+      try {
+        const serverRankings = JSON.parse(raw);
+        serverRankings.sort((a, b) => a.rank - b.rank);
+
+        // Use the score the server already computed; just normalise field names
+        return serverRankings.map(entry => ({
+          name:  entry.playerName || entry.name || ('Player ' + (entry.playerIndex + 1)),
+          score: entry.score,
+          rank:  entry.rank
+        }));
+      } catch (e) { /* fall through to fallback */ }
+    }
+
+    // ── Fallback: use real player names from sessionStorage ──
+    const allPlayers = JSON.parse(sessionStorage.getItem('show_players') || '[]');
+    const myRank     = parseInt(sessionStorage.getItem('show_myRank') || '1');
+    const n          = allPlayers.length || numPlayers;
+
+    const list = [];
+    for (let i = 0; i < n; i++) {
+      const name = allPlayers[i]?.name || ('Player ' + (i + 1));
+      if (i === playerIndex) {
+        list.push({ name, score: scoreForRank(myRank), rank: myRank });
+      } else {
+        list.push({ name, score: null, rank: null });
+      }
+    }
+
+    const known   = list.filter(p => p.score !== null).sort((a, b) => b.score - a.score);
+    const unknown = list.filter(p => p.score === null);
+    known.forEach((p, i)   => { p.rank = i + 1; });
+    unknown.forEach((p, i) => { p.rank = known.length + i + 1; });
+
+    return [...known, ...unknown];
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  RENDER
+  // ══════════════════════════════════════════════════════
+  function render() {
+    const rankings = buildRankings();
+    renderTable(rankings);
+    renderPodium(rankings);
+    spawnConfetti();
+  }
+
+  function renderTable(rankings) {
+    const list = document.getElementById('playersList');
+    list.innerHTML = '';
+    rankings.forEach((p, idx) => {
+      const row = document.createElement('div');
+      row.className = 'player-score-row';
+      row.style.animationDelay = (idx * 80) + 'ms';
+
+      const isMe = (p.name === myName);
+      const scoreHtml = p.score !== null
+        ? `<span class="row-score">${p.score}</span>`
+        : `<span class="row-score no-score">—</span>`;
+
+      row.innerHTML = `
+        <div class="row-left">
+          <span class="row-rank">${p.rank || (idx + 1)}.</span>
+          <span class="row-name ${isMe ? 'me-highlight' : ''}">${escHtml(p.name)}</span>
+        </div>
+        ${scoreHtml}
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function renderPodium(rankings) {
+    const col   = document.getElementById('podiumCol');
+    const count = podiumCount(numPlayers);
+    col.innerHTML = '';
+
+    // ── FIX: image filenames are one.png / two.png / three.png ──
+    const rankNames = ['one', 'two', 'three'];
+
+    for (let i = 0; i < count; i++) {
+      const entry = rankings[i];
+      if (!entry) continue;
+
+      const card = document.createElement('div');
+      card.className = 'podium-card';
+      card.style.animationDelay = (i * 150) + 'ms';
+
+      const imgSrc = `assets/assets/images/${rankNames[i]}.png`;
+      const scoreText = entry.score !== null ? entry.score : '—';
+
+      card.innerHTML = `
+        <img class="rank-img" src="${imgSrc}" alt="Rank ${i + 1}" />
+        <div class="podium-name">${escHtml(entry.name)}</div>
+        <div class="podium-score">${scoreText} pts</div>
+      `;
+      col.appendChild(card);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  CONFETTI
+  // ══════════════════════════════════════════════════════
+  function spawnConfetti() {
+    const container = document.getElementById('confettiContainer');
+    const colors = ['#ff6b8a','#6366f1','#22c55e','#f59e0b','#ef4444','#3b82f6','#a855f7','#ec4899'];
+    for (let i = 0; i < 60; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.width  = (6 + Math.random() * 8) + 'px';
+      el.style.height = (10 + Math.random() * 12) + 'px';
+      el.style.animationDuration = (2 + Math.random() * 2.5) + 's';
+      el.style.animationDelay   = (Math.random() * 1.5) + 's';
+      container.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  NAVIGATION
+  // ══════════════════════════════════════════════════════
+  function goLobby() {
+    window.location.href = 'lobby.html';
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  SOCKET — listen for late-arriving ranking updates
+  // ══════════════════════════════════════════════════════
+  try {
+    const socket = io();
+    socket.on('connect', () => {
+      socket.emit('register', { code, playerIndex });
+    });
+    socket.on('round_results', ({ rankings }) => {
+      sessionStorage.setItem('show_rankings', JSON.stringify(rankings));
+      render(); // re-render with fresh data
+    });
+    socket.on('room_closed', () => {
+      window.location.href = 'join.html';
+    });
+  } catch (e) { /* no socket.io in static preview */ }
+
+  // ── Run on load ──
+  render();
+  </script>
+</body>
+</html>

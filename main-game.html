@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Main Game</title>
+  <style>
+    @font-face { font-family: 'LuckiestGuy';     src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf')  format('truetype'); }
+    @font-face { font-family: 'PoppinsSemiBold'; src: url('assets/assets/fonts/Poppins-SemiBold.ttf')     format('truetype'); font-weight: 600; }
+    @font-face { font-family: 'PoppinsRegular';  src: url('assets/assets/fonts/Poppins-Regular.ttf')      format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'PoppinsMedium';   src: url('assets/assets/fonts/Poppins-Medium.ttf')       format('truetype'); font-weight: 500; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #ffffff;
+      overflow: hidden;
+      font-family: 'PoppinsRegular', sans-serif;
+      user-select: none;
+    }
+
+    .video-wrapper {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      z-index: 100;
+    }
+    .video-wrapper video {
+      width: 100%;
+      position: absolute;
+      top: -120px; left: 0;
+      min-width: 100%;
+      height: auto;
+    }
+
+    .page-content {
+      width: 100%;
+      height: 100vh;
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+    }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      display: grid;
+      grid-template-columns: 60px 1fr 200px;
+      align-items: center;
+      padding: 8px 16px 6px;
+      flex-shrink: 0;
+    }
+
+    .info-btn {
+      width: 36px; height: 36px;
+      background: none; border: none;
+      cursor: pointer; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .info-btn img { width: 32px; height: 32px; object-fit: contain; }
+
+    .timer-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .timer-text {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 28px;
+      color: #111;
+      letter-spacing: 0.06em;
+      transition: color 0.3s, opacity 0.3s;
+    }
+    .timer-text.inactive { color: #bbb; }
+    .timer-text.urgent   { color: #ef4444 !important; }
+
+    .my-turn-badge {
+      display: none;
+      background: #22c55e;
+      color: #fff;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      animation: badgePulse 0.7s ease-in-out infinite alternate;
+    }
+    .my-turn-badge.visible { display: inline-block; }
+    @keyframes badgePulse {
+      from { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+      to   { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+    }
+
+    .players-heading {
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 18px;
+      color: #111;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+
+    /* ── MAIN GRID ── */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr 220px;
+      gap: 10px;
+      padding: 0 12px 8px;
+      min-height: 0;
+    }
+
+    /* Left: received chit */
+    .received-box {
+      border: 2px solid #111;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+      background: #fff;
+    }
+    .received-box .new-chit-label {
+      font-family: 'PoppinsMedium', sans-serif;
+      font-size: 15px;
+      color: #555;
+      position: absolute;
+      bottom: 12px;
+    }
+    .received-waiting {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px;
+      color: #bbb;
+      text-align: center;
+      padding: 0 16px;
+    }
+
+    .received-chit-card {
+      width: 160px; height: 160px;
+      background: #ff6b8a;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 18px;
+      color: #fff;
+      opacity: 0;
+      transform: translateY(-30px);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      text-align: center;
+      padding: 10px;
+    }
+    .received-chit-card .chit-icon { font-size: 38px; line-height: 1; }
+    .received-chit-card.show-in { opacity: 1; transform: translateY(0); }
+
+    .take-skip-row {
+      display: none;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .take-skip-row.visible { display: flex; }
+    .take-btn {
+      padding: 6px 18px;
+      border-radius: 99px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      border: 2px solid #111;
+      background: #111;
+      color: #fff;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .take-btn:hover { background: #333; transform: translateY(-1px); }
+
+    /* Middle: emoji */
+    .emoji-box {
+      border: 2px solid #111;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      overflow: hidden;
+      background: #fff;
+      position: relative;
+    }
+    .reaction-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    .reaction-emoji { font-size: 52px; line-height: 1; }
+    .reaction-name {
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px;
+      color: #555;
+    }
+
+    /* Right panel */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
+    .players-box {
+      border: 2px solid #111;
+      border-radius: 14px;
+      padding: 10px 12px;
+      flex: 1;
+      overflow-y: auto;
+      background: #fff;
+      min-height: 0;
+    }
+    .players-box::-webkit-scrollbar { width: 4px; }
+    .players-box::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-family: 'PoppinsMedium', sans-serif;
+      font-size: 15px;
+      color: #111;
+      transition: background 0.2s, color 0.2s;
+    }
+    .player-row.active-turn { background: #22c55e; color: #fff; }
+    .player-num { min-width: 22px; }
+    .player-mic-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-left: auto;
+      display: none;
+    }
+    .player-mic-dot.active { display: block; }
+
+    .chat-box {
+      border: 2px solid #111;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      overflow: hidden;
+      height: 160px;
+      flex-shrink: 0;
+    }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 0 2px;
+      border-bottom: 1px solid #eee;
+    }
+    .chat-header img { width: 32px; height: 32px; object-fit: contain; }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #333;
+    }
+    .chat-messages::-webkit-scrollbar { width: 3px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+    .chat-msg { margin-bottom: 4px; line-height: 1.4; }
+    .chat-msg .chat-sender { font-weight: 600; color: #6366f1; }
+    .chat-input-row {
+      display: flex;
+      border-top: 1px solid #eee;
+      padding: 4px 8px;
+      gap: 6px;
+      align-items: center;
+    }
+    .chat-input-row input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 13px;
+      color: #111;
+      background: transparent;
+    }
+    .chat-input-row input::placeholder { color: #aaa; }
+    .chat-send-btn {
+      background: none; border: none; cursor: pointer;
+      color: #6366f1; font-size: 18px; padding: 0;
+      display: flex; align-items: center;
+    }
+
+    /* ── HAND CARDS ── */
+    .cards-section {
+      padding: 0 12px 6px;
+      flex-shrink: 0;
+    }
+    .cards-row {
+      display: flex;
+      gap: 14px;
+      justify-content: flex-start;
+      align-items: flex-end;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .hand-card {
+      min-width: 150px;
+      width: 170px;
+      height: 170px;
+      background: #ff6b8a;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 17px;
+      color: #fff;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+      touch-action: none;
+      flex-shrink: 0;
+      text-align: center;
+      padding: 10px;
+    }
+    .hand-card .card-icon-big { font-size: 34px; line-height: 1; }
+    .hand-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(255,107,138,0.4); }
+    .hand-card.not-my-turn { cursor: default; }
+    .hand-card.not-my-turn:hover { transform: none; box-shadow: none; }
+    .hand-card.selected { outline: 3px solid #111; outline-offset: 3px; }
+
+    .pass-popup {
+      position: absolute;
+      top: -42px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: #fff;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 13px;
+      padding: 5px 16px;
+      border-radius: 99px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+      z-index: 10;
+    }
+    .hand-card.selected .pass-popup { opacity: 1; pointer-events: all; cursor: pointer; }
+
+    .hand-card.dragging { opacity: 0.45; transform: scale(0.96); }
+    .drag-ghost {
+      position: fixed;
+      width: 170px; height: 170px;
+      background: #ff6b8a;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 19px;
+      color: #fff;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.85;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-50px) scale(0.88); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .hand-card.slide-in { animation: slideIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+    /* ── BOTTOM BAR ── */
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 6px 12px 10px;
+      flex-shrink: 0;
+    }
+    .ctrl-btn {
+      width: 64px; height: 64px;
+      border-radius: 14px;
+      border: 2.5px solid #111;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .ctrl-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .ctrl-btn img   { width: 44px; height: 44px; object-fit: contain; }
+    .ctrl-btn.dark  { background: #353955; border-color: #353955; }
+    .ctrl-btn.mic-active {
+      border-color: #22c55e !important;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.3) !important;
+    }
+
+    .profile-btn {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      border: 3px solid #22c55e;
+      background: #fff;
+      cursor: pointer;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 22px;
+      color: #fff;
+      transition: transform 0.15s ease;
+    }
+    .profile-btn:hover { transform: scale(1.06); }
+    .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── SHOW BUTTON ── */
+    .show-btn {
+      height: 64px;
+      padding: 0 28px;
+      border-radius: 14px;
+      border: 2.5px solid #ddd;
+      background: #fff;
+      font-family: 'LuckiestGuy', sans-serif;
+      font-size: 28px;
+      color: #ccc;
+      letter-spacing: 0.08em;
+      cursor: not-allowed;
+      opacity: 0.5;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .show-btn.enabled {
+      opacity: 1;
+      cursor: pointer;
+      border-color: #ff4444;
+      color: #ff4444;
+      animation: showPulse 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes showPulse {
+      from { box-shadow: 0 0 0 0 rgba(255,68,68,0.4); }
+      to   { box-shadow: 0 0 0 10px rgba(255,68,68,0); }
+    }
+
+    /* ── EMOJI PICKER ── */
+    .emoji-picker {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #fff;
+      border: 2px solid #111;
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 12px;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .emoji-picker.open { opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0); }
+    .emoji-opt { font-size: 32px; cursor: pointer; transition: transform 0.15s; line-height: 1; }
+    .emoji-opt:hover { transform: scale(1.3); }
+
+    /* ── INSTRUCTIONS ── */
+    .instructions-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 300;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .instructions-overlay.open { opacity: 1; pointer-events: all; }
+    .instructions-panel {
+      background: #fff;
+      border-radius: 20px;
+      padding: 28px 32px;
+      max-width: 520px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      transform: scale(0.92);
+      transition: transform 0.2s;
+    }
+    .instructions-overlay.open .instructions-panel { transform: scale(1); }
+    .instr-close {
+      position: absolute; top: 14px; right: 16px;
+      width: 30px; height: 30px;
+      border: none; background: none;
+      font-size: 22px; cursor: pointer; color: #555;
+    }
+    .instr-title { font-family: 'LuckiestGuy', sans-serif; font-size: 22px; color: #111; margin-bottom: 16px; }
+    .instr-body { font-family: 'PoppinsRegular', sans-serif; font-size: 14px; color: #333; line-height: 1.8; white-space: pre-line; }
+    .instr-body strong { font-family: 'PoppinsSemiBold', sans-serif; color: #111; }
+
+    /* ── EXIT MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 400;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: #fff; border-radius: 20px;
+      padding: 28px 32px; width: 340px;
+      text-align: center;
+      transform: scale(0.92); transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal-box { transform: scale(1); }
+    .modal-title { font-family: 'PoppinsSemiBold', sans-serif; font-size: 18px; color: #111; margin-bottom: 8px; }
+    .modal-sub   { font-family: 'PoppinsRegular', sans-serif; font-size: 14px; color: #666; margin-bottom: 22px; }
+    .modal-btns  { display: flex; flex-direction: column; gap: 10px; }
+    .modal-btn {
+      width: 100%; height: 48px;
+      border-radius: 12px;
+      font-family: 'PoppinsSemiBold', sans-serif;
+      font-size: 15px; cursor: pointer;
+      border: 2px solid #111;
+      transition: all 0.15s;
+    }
+    .modal-btn.danger  { background: #ef4444; color: #fff; border-color: #ef4444; }
+    .modal-btn.neutral { background: #fff; color: #111; }
+    .modal-btn.cancel  { background: #f4f4f4; color: #555; border-color: #ddd; }
+    .modal-btn:hover   { transform: translateY(-1px); }
+
+    /* ── WINNER BANNER ── */
+    .winner-banner {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: #fff;
+      border: 3px solid #111;
+      border-radius: 24px;
+      padding: 30px 50px;
+      text-align: center;
+      z-index: 450;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .winner-banner.show-banner { transform: translate(-50%, -50%) scale(1); }
+    .winner-banner-title { font-family: 'LuckiestGuy', sans-serif; font-size: 36px; color: #ff4444; letter-spacing: 0.06em; }
+    .winner-banner-sub   { font-family: 'PoppinsMedium', sans-serif; font-size: 16px; color: #555; margin-top: 8px; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 100px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #111; color: #fff;
+      padding: 10px 22px;
+      border-radius: 99px;
+      font-family: 'PoppinsRegular', sans-serif;
+      font-size: 14px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 600;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <div class="video-wrapper">
+    <video src="assets/assets/videos/playAi.webm" autoplay muted loop playsinline></video>
+  </div>
+
+  <div class="page-content">
+
+    <div class="top-bar">
+      <button class="info-btn" onclick="toggleInstructions()">
+        <img src="assets/assets/images/info.png" alt="Info" />
+      </button>
+      <div class="timer-wrap">
+        <span class="timer-text inactive" id="timerText">– – –</span>
+        <span class="my-turn-badge" id="myTurnBadge">YOUR TURN</span>
+      </div>
+      <div class="players-heading">PLAYERS</div>
+    </div>
+
+    <div class="main-grid">
+
+      <div class="received-box" id="receivedBox">
+        <span class="received-waiting" id="receivedWaiting">Waiting for a card...</span>
+        <div class="received-chit-card" id="receivedChitCard">
+          <div class="chit-icon" id="receivedChitIcon"></div>
+          <span id="receivedChitLabel"></span>
+        </div>
+        <span class="new-chit-label" id="newChitLabel" style="display:none">New chit!</span>
+        <div class="take-skip-row" id="takeSkipRow">
+          <button class="take-btn" onclick="hintSwap()">Tap a card below to swap ↓</button>
+        </div>
+      </div>
+
+      <div class="emoji-box" id="emojiBox">
+        <div class="reaction-display" id="reactionDisplay" style="opacity:0">
+          <div class="reaction-emoji" id="reactionEmoji">😂</div>
+          <div class="reaction-name"  id="reactionName">player</div>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="players-box" id="playersBox"></div>
+        <div class="chat-box">
+          <div class="chat-header">
+            <img src="assets/assets/images/chats.png" alt="Chat" />
+          </div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="chat..." maxlength="120"
+              onkeydown="if(event.key==='Enter') sendChat()" />
+            <button class="chat-send-btn" onclick="sendChat()">&#9658;</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="cards-section">
+      <div class="cards-row" id="cardsRow"></div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="ctrl-btn dark" onclick="goDashboard()" title="Scores">
+        <img src="assets/assets/images/podiums.png" alt="Scores" />
+      </button>
+      <button class="ctrl-btn" onclick="toggleEmojiPicker()" title="React">
+        <img src="assets/assets/images/smiley.png" alt="Emoji" />
+      </button>
+      <button class="ctrl-btn" id="mikeBtn" onclick="toggleMike()" title="Mic">
+        <img src="assets/assets/images/mike.png" alt="Mike" id="mikeImg" />
+      </button>
+      <div class="profile-btn" id="profileBtn"></div>
+      <button class="show-btn" id="showBtn" onclick="handleShow()">SHOW</button>
+      <button class="ctrl-btn dark" onclick="openExitModal()" title="Exit">
+        <img src="assets/assets/images/exit.png" alt="Exit" />
+      </button>
+    </div>
+
+  </div>
+
+  <!-- EMOJI PICKER -->
+  <div class="emoji-picker" id="emojiPicker">
+    <span class="emoji-opt" onclick="sendReaction('😂')">😂</span>
+    <span class="emoji-opt" onclick="sendReaction('🔥')">🔥</span>
+    <span class="emoji-opt" onclick="sendReaction('😱')">😱</span>
+    <span class="emoji-opt" onclick="sendReaction('👏')">👏</span>
+    <span class="emoji-opt" onclick="sendReaction('😤')">😤</span>
+    <span class="emoji-opt" onclick="sendReaction('🎉')">🎉</span>
+    <span class="emoji-opt" onclick="sendReaction('💀')">💀</span>
+    <span class="emoji-opt" onclick="sendReaction('🤩')">🤩</span>
+  </div>
+
+  <!-- INSTRUCTIONS -->
+  <div class="instructions-overlay" id="instrOverlay" onclick="closeInstructionsOnBg(event)">
+    <div class="instructions-panel">
+      <button class="instr-close" onclick="toggleInstructions()">×</button>
+      <div class="instr-title">🎮 How to Play Show</div>
+      <div class="instr-body">
+<strong>🧩 Objective</strong>
+Be the first to collect all cards of the same type and press SHOW.
+
+<strong>🃏 Game Setup</strong>
+• N players → N unique items selected from topic
+• Each item has N copies → total N×N cards
+• Each player receives exactly N cards
+
+<strong>🔄 Turn Flow</strong>
+• Active player sees a "Your Turn" badge and timer starts
+• If you received a card from previous player: tap any card in your hand to swap it out
+• If you are the first player: tap any card in your hand to pass it
+• You cannot pass the same card you just received
+• You have 15 seconds — or a random card auto-passes
+
+<strong>🏆 Winning</strong>
+• Collect all N cards of the same type → Press SHOW
+• Others complete a color-memory puzzle — fastest correct answer = highest rank
+      </div>
+    </div>
+  </div>
+
+  <!-- EXIT MODAL -->
+  <div class="modal-overlay" id="exitModal" onclick="closeModalOnBg(event,'exitModal')">
+    <div class="modal-box">
+      <div class="modal-title" id="exitModalTitle">Leave the game?</div>
+      <div class="modal-sub"   id="exitModalSub">Choose an option below</div>
+      <div class="modal-btns" id="exitModalBtns"></div>
+    </div>
+  </div>
+
+  <!-- WINNER BANNER -->
+  <div class="winner-banner" id="winnerBanner">
+    <div class="winner-banner-title">SHOW! 🎉</div>
+    <div class="winner-banner-sub" id="winnerBannerSub">called Show!</div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- DRAG GHOST -->
+  <div class="drag-ghost" id="dragGhost" style="display:none"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  // ══════════════════════════════════════════════════════
+  //  SESSION
+  // ══════════════════════════════════════════════════════
+  const code        = sessionStorage.getItem('show_code')        || '';
+  const playerIndex = parseInt(sessionStorage.getItem('show_playerIndex') || '0');
+  const myName      = sessionStorage.getItem('show_name')        || 'Player';
+  const profilePic  = sessionStorage.getItem('show_profilePic')  || '';
+  const isCreator   = sessionStorage.getItem('show_isCreator')   === 'true';
+  const maxPlayers  = parseInt(sessionStorage.getItem('show_maxPlayers')  || '4');
+  const topic       = sessionStorage.getItem('show_topic')       || 'chocolates';
+
+  // Icon lookup
+  const TOPIC_ICONS = {
+    chocolates: ['🍫','🍪','🍬','🍭','🟤','🥥','🪐','🔺','🤍','💥'],
+    movies:     ['🗡️','😂','👻','❤️','😱','🚀','🎭','🎨','🧙','🔍'],
+    countries:  ['🇮🇳','🇺🇸','🇯🇵','🇧🇷','🇩🇪','🇫🇷','🇦🇺','🇨🇦','🇮🇹','🇪🇸'],
+    cartoons:   ['🐱','🤖','🧽','😜','🍥','🔧','⌚','🐘','🎪','💪'],
+    fruits:     ['🍎','🍌','🥭','🍇','🍊','🍓','🍉','🍍','🪷','🥝'],
+    animals:    ['🦁','🐯','🐘','🦓','🦒','🐧','🐬','🐆','🐼','🦘']
+  };
+  const TOPIC_LABELS = {
+    chocolates: ['KitKat','Dairy Milk','Snickers','Ferrero','Twix','Bounty','Mars','Toblerone','Milky Bar','Crunch'],
+    movies:     ['Action','Comedy','Horror','Romance','Thriller','Sci-Fi','Drama','Animation','Fantasy','Mystery'],
+    countries:  ['India','USA','Japan','Brazil','Germany','France','Australia','Canada','Italy','Spain'],
+    cartoons:   ['Tom & Jerry','Doraemon','SpongeBob','Shinchan','Naruto','Phineas & Ferb','Ben 10','Oggy','Motu Patlu','Chhota Bheem'],
+    fruits:     ['Apple','Banana','Mango','Grapes','Orange','Strawberry','Watermelon','Pineapple','Papaya','Kiwi'],
+    animals:    ['Lion','Tiger','Elephant','Zebra','Giraffe','Penguin','Dolphin','Cheetah','Panda','Kangaroo']
+  };
+
+  function iconForCard(card) {
+    const labels = TOPIC_LABELS[topic] || TOPIC_LABELS['chocolates'];
+    const icons  = TOPIC_ICONS[topic]  || TOPIC_ICONS['chocolates'];
+    const idx    = labels.indexOf(card.label);
+    return idx >= 0 ? icons[idx] : '🎴';
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  STATE
+  // ══════════════════════════════════════════════════════
+  let myHand = JSON.parse(sessionStorage.getItem('show_hand') || '[]');
+  myHand = myHand.map(c => ({ ...c, icon: c.icon || iconForCard(c) }));
+
+let allPlayers = JSON.parse(sessionStorage.getItem('show_players') || '[]');
+if (allPlayers.length === 0) {
+  for (let i = 0; i < maxPlayers; i++) allPlayers.push({ name: 'Player ' + (i+1) });
+  allPlayers[playerIndex].name = myName;
+}
+// Always keep sessionStorage in sync so leaderboard.html can use real names
+sessionStorage.setItem('show_players', JSON.stringify(allPlayers));
+
+  let myTurn        = false;
+  let timerValue    = 0;
+  let timerInterval = null;
+  let pendingCard     = null;
+  let lastReceivedUid = null;
+  let swapInProgress  = false;
+
+  // ── WebRTC ──
+  let micOn           = false;
+  let micStream       = null;
+  let peerConnections = {};
+  const numPlayers    = parseInt(sessionStorage.getItem('show_numPlayers') || String(maxPlayers));
+  const RTC_CONFIG    = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  };
+
+  // ══════════════════════════════════════════════════════
+  //  PROFILE BUTTON
+  // ══════════════════════════════════════════════════════
+  (function initProfile() {
+    const btn = document.getElementById('profileBtn');
+    if (profilePic) {
+      btn.innerHTML = `<img src="${profilePic}" alt="${myName}" />`;
+    } else {
+      const initial = myName.charAt(0).toUpperCase();
+      const colors  = ['#6366f1','#22c55e','#f59e0b','#ef4444','#3b82f6','#a855f7'];
+      btn.style.background = colors[playerIndex % colors.length];
+      btn.textContent      = initial;
+    }
+  })();
+
+  // ══════════════════════════════════════════════════════
+  //  PLAYERS LIST
+  // ══════════════════════════════════════════════════════
+  const micStates = {};
+
+  function renderPlayers(activeTurnIdx) {
+    const box = document.getElementById('playersBox');
+    box.innerHTML = '';
+    allPlayers.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'player-row' + (i === activeTurnIdx ? ' active-turn' : '');
+      row.innerHTML = `
+        <span class="player-num">${i + 1}.</span>
+        <span>${escHtml(p.name || 'Player ' + (i+1))}</span>
+        <span class="player-mic-dot ${micStates[i] ? 'active' : ''}"></span>
+      `;
+      box.appendChild(row);
+    });
+  }
+  renderPlayers(-1);
+
+  // ══════════════════════════════════════════════════════
+  //  HAND CARDS
+  // ══════════════════════════════════════════════════════
+  function renderHand() {
+    const row = document.getElementById('cardsRow');
+    row.innerHTML = '';
+    myHand.forEach((card, i) => {
+      const div = document.createElement('div');
+      div.className   = 'hand-card' + (myTurn ? '' : ' not-my-turn');
+      div.dataset.idx = i;
+      div.dataset.uid = card.uniqueId;
+      div.innerHTML = `
+        <div class="card-icon-big">${card.icon || iconForCard(card)}</div>
+        <span>${escHtml(card.label)}</span>
+        <div class="pass-popup">Swap this out ✓</div>
+      `;
+      div.addEventListener('click', () => onCardClick(i));
+      setupDrag(div, i);
+      row.appendChild(div);
+    });
+    checkShowEligibility();
+  }
+
+  function onCardClick(idx) {
+    if (!myTurn) return;
+    if (swapInProgress) return;
+    if (pendingCard) {
+      if (myHand[idx] && myHand[idx].uniqueId === lastReceivedUid) {
+        showToast("Can't pass the card you just received!");
+        return;
+      }
+      executeSwap(idx);
+    } else {
+      const cards = document.querySelectorAll('.hand-card');
+      const isAlreadySelected = (cards[idx] && cards[idx].classList.contains('selected'));
+      cards.forEach(c => c.classList.remove('selected'));
+      if (!isAlreadySelected) {
+        if (myHand[idx] && myHand[idx].uniqueId === lastReceivedUid) {
+          showToast("Can't pass the card you just received!");
+          return;
+        }
+        if (cards[idx]) cards[idx].classList.add('selected');
+        showToast('Tap again or drag right to pass this card →');
+      } else {
+        if (myHand[idx] && myHand[idx].uniqueId !== lastReceivedUid) {
+          directPass(idx);
+        }
+      }
+    }
+  }
+
+  function executeSwap(idx) {
+    if (swapInProgress) return;
+    swapInProgress = true;
+    const outCard = myHand[idx];
+    myHand[idx]   = { ...pendingCard, icon: pendingCard.icon || iconForCard(pendingCard) };
+    pendingCard   = null;
+    clearReceivedBox();
+    stopTimer();
+    renderHand();
+    setTimeout(() => {
+      const newCards = document.querySelectorAll('.hand-card');
+      if (newCards[idx]) newCards[idx].classList.add('slide-in');
+      swapInProgress = false;
+    }, 50);
+    socket.emit('pass_card', { code, playerIndex, cardUid: outCard.uniqueId, cardLabel: outCard.label, cardItem: outCard.itemIdx });
+  }
+
+  function directPass(idx) {
+    if (swapInProgress) return;
+    if (!myTurn) return;
+    if (!myHand[idx]) return;
+    if (myHand[idx].uniqueId === lastReceivedUid) { showToast("Can't pass the card you just received!"); return; }
+    swapInProgress = true;
+    const outCard = myHand[idx];
+    const cardEls = document.querySelectorAll('.hand-card');
+    if (cardEls[idx]) { cardEls[idx].style.opacity = '0.3'; cardEls[idx].style.pointerEvents = 'none'; }
+    stopTimer();
+    socket.emit('pass_card', { code, playerIndex, cardUid: outCard.uniqueId, cardLabel: outCard.label, cardItem: outCard.itemIdx });
+    window._pendingPassIdx = idx;
+  }
+
+  function autoPass() {
+    if (!myTurn) return;
+    const validIdxs = myHand.map((c, i) => i).filter(i => myHand[i] && myHand[i].uniqueId !== lastReceivedUid);
+    if (validIdxs.length === 0) return;
+    const idx = validIdxs[Math.floor(Math.random() * validIdxs.length)];
+    showToast('Time up! Auto-passing...');
+    if (pendingCard) { executeSwap(idx); } else { directPass(idx); }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  RECEIVED BOX
+  // ══════════════════════════════════════════════════════
+  function showReceivedCard(card) {
+    document.getElementById('receivedWaiting').style.display = 'none';
+    const el = document.getElementById('receivedChitCard');
+    document.getElementById('receivedChitIcon').textContent  = card.icon  || iconForCard(card);
+    document.getElementById('receivedChitLabel').textContent = card.label || '';
+    el.classList.remove('show-in');
+    void el.offsetWidth;
+    el.classList.add('show-in');
+    document.getElementById('newChitLabel').style.display = 'block';
+    if (myTurn) document.getElementById('takeSkipRow').classList.add('visible');
+  }
+
+  function clearReceivedBox() {
+    const el = document.getElementById('receivedChitCard');
+    el.classList.remove('show-in');
+    document.getElementById('newChitLabel').style.display = 'none';
+    document.getElementById('takeSkipRow').classList.remove('visible');
+    document.getElementById('receivedWaiting').style.display = '';
+  }
+
+  function hintSwap() { showToast('Tap any card below to swap it with the new card!'); }
+
+  // ══════════════════════════════════════════════════════
+  //  DRAG TO PASS
+  // ══════════════════════════════════════════════════════
+  function setupDrag(el, idx) {
+    let startX, dragActive = false;
+    const ghost = document.getElementById('dragGhost');
+    function onEnd(cx) {
+      if (!dragActive) return;
+      dragActive = false;
+      ghost.style.display = 'none';
+      el.classList.remove('dragging');
+      const delta = cx - startX;
+      if (delta > 80 && myTurn && !swapInProgress) {
+        if (myHand[idx] && myHand[idx].uniqueId === lastReceivedUid) { showToast("Can't pass the card you just received!"); return; }
+        if (pendingCard) { executeSwap(idx); } else { directPass(idx); }
+      }
+    }
+    el.addEventListener('mousedown', (e) => {
+      if (!myTurn) return;
+      startX = e.clientX; dragActive = true; el.classList.add('dragging');
+      ghost.innerHTML = `<span style="font-size:26px">${myHand[idx]?.icon||''}</span><span style="font-size:14px;margin-top:4px">${myHand[idx]?.label||''}</span>`;
+      ghost.style.display = 'flex'; ghost.style.flexDirection = 'column'; ghost.style.gap = '4px';
+      ghost.style.left = (e.clientX - 85) + 'px'; ghost.style.top = (e.clientY - 85) + 'px';
+    });
+    document.addEventListener('mousemove', (e) => { if (!dragActive) return; ghost.style.left = (e.clientX - 85) + 'px'; ghost.style.top = (e.clientY - 85) + 'px'; });
+    document.addEventListener('mouseup', (e) => onEnd(e.clientX));
+    el.addEventListener('touchstart', (e) => { if (!myTurn) return; startX = e.touches[0].clientX; dragActive = true; el.classList.add('dragging'); ghost.textContent = myHand[idx]?.label || ''; ghost.style.display = 'flex'; }, { passive: true });
+    el.addEventListener('touchmove', (e) => { if (!dragActive) return; const t = e.touches[0]; ghost.style.left = (t.clientX - 85) + 'px'; ghost.style.top = (t.clientY - 85) + 'px'; }, { passive: true });
+    el.addEventListener('touchend', (e) => onEnd(e.changedTouches[0].clientX));
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  SHOW BUTTON
+  // ══════════════════════════════════════════════════════
+  function checkShowEligibility() {
+    if (myHand.length === 0) { disableShow(); return; }
+    const counts = {};
+    myHand.forEach(c => { counts[c.itemIdx] = (counts[c.itemIdx] || 0) + 1; });
+    const target = parseInt(sessionStorage.getItem('show_numPlayers') || String(maxPlayers));
+    const has4   = Object.values(counts).some(v => v >= target);
+    if (has4) enableShow(); else disableShow();
+  }
+  function enableShow()  { document.getElementById('showBtn').classList.add('enabled'); }
+  function disableShow() { document.getElementById('showBtn').classList.remove('enabled'); }
+  function handleShow() {
+    const b = document.getElementById('showBtn');
+    if (!b.classList.contains('enabled')) { showToast('Collect all cards of the same item first!'); return; }
+    socket.emit('player_show', { code, playerIndex, playerName: myName });
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  TIMER
+  // ══════════════════════════════════════════════════════
+  function startTimer(seconds, isMyTurn) {
+    timerValue = seconds || 15;
+    clearInterval(timerInterval);
+    updateTimerUI(isMyTurn);
+    timerInterval = setInterval(() => {
+      timerValue--;
+      updateTimerUI(isMyTurn);
+      if (timerValue <= 0) { clearInterval(timerInterval); if (isMyTurn) autoPass(); }
+    }, 1000);
+  }
+  function stopTimer() {
+    clearInterval(timerInterval);
+    timerValue = 0;
+    const el = document.getElementById('timerText');
+    el.textContent = '– – –'; el.className = 'timer-text inactive';
+  }
+  function updateTimerUI(isMyTurn) {
+    const el = document.getElementById('timerText');
+    el.textContent = timerValue + (timerValue === 1 ? ' SEC' : ' SECS');
+    el.className   = 'timer-text' + (timerValue <= 5 && timerValue > 0 ? ' urgent' : '') + (isMyTurn ? '' : ' inactive');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  EMOJI / CHAT
+  // ══════════════════════════════════════════════════════
+  let emojiOpen = false;
+  function toggleEmojiPicker() { emojiOpen = !emojiOpen; document.getElementById('emojiPicker').classList.toggle('open', emojiOpen); }
+  function sendReaction(emoji) {
+    emojiOpen = false; document.getElementById('emojiPicker').classList.remove('open');
+    socket.emit('reaction', { code, playerIndex, name: myName, emoji });
+  }
+  function showReaction(emoji, name) {
+    const d = document.getElementById('reactionDisplay');
+    document.getElementById('reactionEmoji').textContent = emoji;
+    document.getElementById('reactionName').textContent  = name;
+    d.style.opacity = '1'; d.style.transform = 'scale(1.15)';
+    setTimeout(() => { d.style.transition = 'opacity 0.5s, transform 0.5s'; d.style.opacity = '0'; d.style.transform = 'scale(1)'; }, 2200);
+  }
+  function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg   = input.value.trim();
+    if (!msg) return;
+    socket.emit('chat_msg', { code, name: myName, msg });
+    input.value = '';
+  }
+  function appendChat(name, msg) {
+    const box = document.getElementById('chatMessages');
+    const el  = document.createElement('div');
+    el.className = 'chat-msg';
+    el.innerHTML = `<span class="chat-sender">${escHtml(name)}:</span> ${escHtml(msg)}`;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  INSTRUCTIONS / EXIT
+  // ══════════════════════════════════════════════════════
+  function toggleInstructions() { document.getElementById('instrOverlay').classList.toggle('open'); }
+  function closeInstructionsOnBg(e) { if (e.target === document.getElementById('instrOverlay')) toggleInstructions(); }
+  function openExitModal() {
+    const title = document.getElementById('exitModalTitle');
+    const sub   = document.getElementById('exitModalSub');
+    const btns  = document.getElementById('exitModalBtns');
+    if (isCreator) {
+      title.textContent = 'You are the Room Owner';
+      sub.textContent   = 'What would you like to do?';
+      btns.innerHTML    = `
+        <button class="modal-btn danger"  onclick="ownerCloseRoom()">Close room for everyone</button>
+        <button class="modal-btn neutral" onclick="ownerLeaveRoom()">Leave &amp; pass ownership</button>
+        <button class="modal-btn cancel"  onclick="closeModal('exitModal')">Cancel</button>`;
+    } else {
+      title.textContent = 'Leave the game?';
+      sub.textContent   = 'You will exit this room.';
+      btns.innerHTML    = `
+        <button class="modal-btn danger" onclick="leaveRoom()">Leave</button>
+        <button class="modal-btn cancel" onclick="closeModal('exitModal')">Cancel</button>`;
+    }
+    document.getElementById('exitModal').classList.add('open');
+  }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeModalOnBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+  function ownerCloseRoom() { socket.emit('close_room', { code }); window.location.href = 'join.html'; }
+  function ownerLeaveRoom() { socket.emit('owner_leave', { code, playerIndex }); window.location.href = 'join.html'; }
+  function leaveRoom()      { socket.emit('player_leave', { code, playerIndex }); window.location.href = 'join.html'; }
+  function goDashboard()    { window.location.href = 'dashboard.html'; }
+
+  // ══════════════════════════════════════════════════════
+  //  TOAST / UTILS
+  // ══════════════════════════════════════════════════════
+  let toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  MIC / WebRTC
+  // ══════════════════════════════════════════════════════
+  async function toggleMike() {
+    const btn = document.getElementById('mikeBtn');
+    if (!micOn) {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        micOn = true; btn.classList.add('mic-active');
+        showToast('🎙️ Mic ON — connecting to players...');
+        socket.emit('mic_state', { code, playerIndex, micOn: true });
+        for (let i = 0; i < numPlayers; i++) { if (i === playerIndex) continue; await createPeerConnection(i, true); }
+      } catch (err) {
+        micOn = false;
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') showToast('Mic permission denied.');
+        else if (err.name === 'NotFoundError') showToast('No microphone found.');
+        else showToast('Mic error: ' + err.message);
+      }
+    } else {
+      Object.values(peerConnections).forEach(pc => pc.close()); peerConnections = {};
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+      micOn = false; btn.classList.remove('mic-active');
+      showToast('🎙️ Mic OFF');
+      socket.emit('mic_state', { code, playerIndex, micOn: false });
+    }
+  }
+  async function createPeerConnection(remoteIdx, isInitiator) {
+    if (peerConnections[remoteIdx]) peerConnections[remoteIdx].close();
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    peerConnections[remoteIdx] = pc;
+    if (micStream) micStream.getTracks().forEach(track => pc.addTrack(track, micStream));
+    pc.ontrack = (event) => {
+      const stream = event.streams[0];
+      let audioEl = document.getElementById('audio_player_' + remoteIdx);
+      if (!audioEl) { audioEl = document.createElement('audio'); audioEl.id = 'audio_player_' + remoteIdx; audioEl.autoplay = true; audioEl.style.display = 'none'; document.body.appendChild(audioEl); }
+      audioEl.srcObject = stream;
+    };
+    pc.onicecandidate = (event) => { if (event.candidate) socket.emit('webrtc_ice', { code, fromIndex: playerIndex, toIndex: remoteIdx, candidate: event.candidate }); };
+    pc.onconnectionstatechange = () => { if (pc.connectionState === 'connected') showToast('🎙️ Voice connected to Player ' + (remoteIdx + 1)); };
+    if (isInitiator) {
+      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+      socket.emit('webrtc_offer', { code, fromIndex: playerIndex, toIndex: remoteIdx, offer: pc.localDescription });
+    }
+    return pc;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  SOCKET.IO
+  // ══════════════════════════════════════════════════════
+  const socket = io();
+
+  socket.on('connect', () => {
+    socket.emit('register', { code, playerIndex, profilePic: profilePic || '' });
+  });
+
+  socket.on('lobby_update', ({ players }) => {
+  if (players) {
+    allPlayers = players;
+    sessionStorage.setItem('show_players', JSON.stringify(players)); // ← add this
+    renderPlayers(-1);
+  }
+});
+
+  socket.on('turn_update', ({ activeTurnIndex, timerSeconds }) => {
+    renderPlayers(activeTurnIndex);
+    myTurn = (activeTurnIndex === playerIndex);
+    swapInProgress = false;
+    document.getElementById('myTurnBadge').classList.toggle('visible', myTurn);
+    if (myTurn && pendingCard) document.getElementById('takeSkipRow').classList.add('visible');
+    startTimer(timerSeconds || 15, myTurn);
+    if (myTurn) {
+      if (!pendingCard) showToast('Your turn! Tap or drag a card to pass →');
+      else showToast('Your turn! Tap a card below to swap it with the new card');
+    }
+  });
+
+  socket.on('receive_card', ({ card }) => {
+    lastReceivedUid = card.uniqueId;
+    pendingCard = { ...card, icon: card.icon || iconForCard(card) };
+    if (window._pendingPassIdx !== undefined && window._pendingPassIdx !== null) {
+      const idx = window._pendingPassIdx;
+      window._pendingPassIdx = null;
+      myHand[idx] = pendingCard; pendingCard = null;
+      clearReceivedBox(); renderHand();
+      setTimeout(() => { const cards = document.querySelectorAll('.hand-card'); if (cards[idx]) cards[idx].classList.add('slide-in'); swapInProgress = false; }, 50);
+      return;
+    }
+    swapInProgress = false;
+    showReceivedCard(pendingCard);
+    if (myTurn) { document.getElementById('takeSkipRow').classList.add('visible'); showToast('New card! Tap any hand card to swap it out'); }
+  });
+
+  socket.on('pass_accepted', () => { swapInProgress = false; });
+  socket.on('show_available', () => { checkShowEligibility(); showToast('🎉 You can call SHOW!'); });
+  socket.on('reaction',  ({ emoji, name }) => showReaction(emoji, name));
+  socket.on('chat_msg',  ({ name, msg })   => appendChat(name, msg));
+  socket.on('mic_state', ({ playerIndex: pi, micOn: on }) => { micStates[pi] = on; renderPlayers(-1); });
+
+  socket.on('webrtc_offer', async ({ fromIndex, offer }) => {
+    try {
+      const pc = await createPeerConnection(fromIndex, false);
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+      socket.emit('webrtc_answer', { code, fromIndex: playerIndex, toIndex: fromIndex, answer: pc.localDescription });
+    } catch (e) { console.error('WebRTC offer error:', e); }
+  });
+  socket.on('webrtc_answer', async ({ fromIndex, answer }) => {
+    const pc = peerConnections[fromIndex];
+    if (pc) { try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); } catch (e) { console.error('WebRTC answer error:', e); } }
+  });
+  socket.on('webrtc_ice', async ({ fromIndex, candidate }) => {
+    const pc = peerConnections[fromIndex];
+    if (pc && candidate) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.error('ICE error:', e); } }
+  });
+
+  // ── show_called: winner → leaderboard, others → puzzle.html ──
+  socket.on('show_called', ({ callerName, callerIndex, puzzleSeed }) => {
+    stopTimer();
+
+    // Save puzzle seed for puzzle.html to use
+    sessionStorage.setItem('show_puzzleSeed', String(puzzleSeed));
+
+    const banner = document.getElementById('winnerBanner');
+    document.getElementById('winnerBannerSub').textContent = callerName + ' called Show!';
+    banner.classList.add('show-banner');
+
+    setTimeout(() => {
+      banner.classList.remove('show-banner');
+      if (callerIndex === playerIndex) {
+        // Winner goes straight to leaderboard
+        sessionStorage.setItem('show_myRank',  '1');
+        sessionStorage.setItem('show_myScore', '1000');
+        window.location.href = 'leaderboard.html';
+      } else {
+        // All other players go to puzzle.html
+        window.location.href = 'puzzle.html';
+      }
+    }, 1800);
+  });
+
+  socket.on('round_results', ({ rankings }) => {
+    sessionStorage.setItem('show_rankings', JSON.stringify(rankings));
+  });
+
+  socket.on('room_closed', () => {
+    showToast('Room closed by the host.');
+    setTimeout(() => { window.location.href = 'join.html'; }, 1500);
+  });
+
+  socket.on('player_disconnected', ({ playerIndex: pi }) => {
+    if (allPlayers[pi]) { allPlayers[pi].name = (allPlayers[pi].name || 'Player') + ' (left)'; renderPlayers(-1); }
+  });
+
+  // ── INIT ──
+  renderHand();
+
+  document.addEventListener('click', (e) => {
+    const picker = document.getElementById('emojiPicker');
+    if (emojiOpen && !picker.contains(e.target) && !e.target.closest('.ctrl-btn')) {
+      emojiOpen = false; picker.classList.remove('open');
+    }
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHOW — Waiting</title>
+  <style>
+    @font-face { font-family: 'LuckiestGuy';    src: url('assets/assets/fonts/LuckiestGuy-Regular.ttf')  format('truetype'); }
+    @font-face { font-family: 'PoppinsSemiBold';src: url('assets/assets/fonts/Poppins-SemiBold.ttf')     format('truetype'); font-weight: 600; }
+    @font-face { font-family: 'PoppinsRegular'; src: url('assets/assets/fonts/Poppins-Regular.ttf')      format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'PoppinsMedium';  src: url('assets/assets/fonts/Poppins-Medium.ttf')       format('truetype'); font-weight: 500; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; }
+
+    .page {
+      width: 100%; height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      background: #fff; position: relative;
+    }
+
+    /* Top-left SHOW */
+    .show-title {
+      font-family: 'LuckiestGuy', sans-serif; font-size: 26px; color: #111;
+      letter-spacing: 0.06em; line-height: 1; user-select: none;
+      position: absolute; top: 36px; left: 40px;
+    }
+
+    /* Room code badge top-right */
+    .room-code {
+      position: absolute; top: 30px; right: 40px;
+      font-family: 'PoppinsSemiBold', sans-serif; font-size: 13px; color: #555;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+    }
+    .room-code span     { font-size: 11px; color: #999; font-family: 'PoppinsRegular', sans-serif; }
+    .room-code strong   { font-size: 20px; color: #111; letter-spacing: 0.12em; font-family: 'LuckiestGuy', sans-serif; }
+
+    /* Center content */
+    .center-content {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; width: 100%; margin-top: -30px;
+    }
+
+    /* Video card */
+    .video-card {
+      width: 120px; height: 148px; border-radius: 6px; overflow: hidden;
+      display: block; flex-shrink: 0; margin-bottom: 22px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .video-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .entering-text {
+      font-family: 'PoppinsMedium', sans-serif; font-size: 20px; font-weight: 500;
+      color: #111; text-align: center; margin-bottom: 6px; letter-spacing: 0.01em;
+    }
+    .counter-text {
+      font-family: 'PoppinsRegular', sans-serif; font-size: 18px;
+      color: #111; text-align: center; letter-spacing: 0.01em;
+    }
+
+    /* ── Player avatars strip ── */
+    /* Shows joined players with their profile pic or initials fallback */
+    .players-strip {
+      display: flex; gap: 12px; align-items: center; justify-content: center;
+      flex-wrap: wrap; margin-top: 20px; padding: 0 24px; max-width: 380px;
+    }
+    .avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'PoppinsSemiBold', sans-serif; font-size: 15px;
+      color: #fff; overflow: hidden; flex-shrink: 0;
+      border: 2px solid rgba(0,0,0,0.08);
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Soft colour palette for initials avatars — cycles by player index */
+    .avatar-color-0 { background: #6366f1; }
+    .avatar-color-1 { background: #22c55e; }
+    .avatar-color-2 { background: #f59e0b; }
+    .avatar-color-3 { background: #ef4444; }
+    .avatar-color-4 { background: #3b82f6; }
+    .avatar-color-5 { background: #a855f7; }
+    .avatar-color-6 { background: #ec4899; }
+    .avatar-color-7 { background: #14b8a6; }
+    .avatar-color-8 { background: #f97316; }
+    .avatar-color-9 { background: #84cc16; }
+
+    /* Start button */
+    .btn-start-wrapper {
+      position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .btn-start-wrapper.visible { opacity: 1; pointer-events: all; }
+
+    .btn-start {
+      width: 200px; height: 52px; background: #111; color: #fff; border: none;
+      border-radius: 12px; font-family: 'PoppinsSemiBold', sans-serif; font-size: 22px;
+      font-weight: 600; cursor: pointer; outline: none; letter-spacing: 0.01em;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-start:hover  { background: #2a2a2a; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.22); }
+    .btn-start:active { transform: translateY(0); box-shadow: none; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #1f1f1f; color: #fff; padding: 10px 20px; border-radius: 8px;
+      font-family: 'PoppinsRegular', sans-serif; font-size: 13px;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 767px) {
+      .show-title            { font-size: 20px; top: 24px; left: 24px; }
+      .room-code             { top: 20px; right: 20px; }
+      .video-card            { width: 100px; height: 124px; }
+      .entering-text         { font-size: 17px; }
+      .counter-text          { font-size: 15px; }
+      .btn-start             { width: 170px; height: 48px; font-size: 19px; }
+      .btn-start-wrapper     { bottom: 50px; }
+    }
+
+    /* Transition Overlay */
+    #transitionOverlay {
+      position: fixed; inset: 0; background: #fff; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    #transitionOverlay.active { opacity: 1; pointer-events: all; }
+
+    .minimal-soon {
+      font-family: 'PoppinsSemiBold', sans-serif; font-size: 24px; color: #111;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      opacity: 0; transform: translateY(10px);
+      transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1) 0.3s;
+    }
+    #transitionOverlay.active .minimal-soon { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <h1 class="show-title">SHOW</h1>
+
+    <div class="room-code">
+      <span>Room Code</span>
+      <strong id="roomCodeDisplay">----</strong>
+    </div>
+
+    <div class="center-content">
+      <div class="video-card">
+        <video src="assets/assets/videos/starting.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <p class="entering-text">Entering the ring...</p>
+      <p class="counter-text" id="counterText">(1/?)</p>
+
+      <!-- Player avatars: populated dynamically via lobby_update -->
+      <div class="players-strip" id="playersStrip"></div>
+    </div>
+
+    <div class="btn-start-wrapper" id="startBtnWrapper">
+      <button class="btn-start" onclick="handleStart()">Start</button>
+    </div>
+
+  </div>
+
+  <div id="transitionOverlay">
+    <div class="minimal-soon">Starting...</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // ── Read session (set by create.html / next.html) ──
+    const code        = sessionStorage.getItem('show_code')        || '';
+    const playerIndex = parseInt(sessionStorage.getItem('show_playerIndex') || '0');
+    const isCreator   = sessionStorage.getItem('show_isCreator')   === 'true';
+    const maxPlayers  = parseInt(sessionStorage.getItem('show_maxPlayers')  || '0');
+    const name        = sessionStorage.getItem('show_name')        || '';
+    // profilePic is a Base64 data URL (if user uploaded) or empty string (no upload).
+    // Empty string → game screen will render a default initials avatar.
+    const profilePic  = sessionStorage.getItem('show_profilePic')  || '';
+
+    // Show room code
+    document.getElementById('roomCodeDisplay').textContent = code || '----';
+
+    // Init counter
+    updateCounter(1, maxPlayers);
+
+    // ── Connect to Socket.IO ──
+    const socket = io();
+
+    socket.on('connect', () => {
+      // Send profilePic (Base64 or empty string) along with registration.
+      // Server stores it in the room's player array — in RAM only.
+      // When the room is deleted, the picture is gone automatically.
+      socket.emit('register', {
+        code,
+        playerIndex,
+        profilePic   // '' means no upload → server keeps profilePic as null
+      });
+    });
+
+    // Server pushes updated player list whenever anyone joins
+    socket.on('lobby_update', ({ currentPlayers, maxPlayers: max, players }) => {
+      updateCounter(currentPlayers, max);
+
+      if (players) {
+        sessionStorage.setItem('show_players', JSON.stringify(players));
+        renderAvatars(players);
+      }
+
+      // Show Start button only when room is full AND this client is the creator
+      const wrapper = document.getElementById('startBtnWrapper');
+      wrapper.classList.toggle('visible', currentPlayers >= max && isCreator);
+    });
+
+    // Server tells everyone the game has started — redirect to game screen
+    socket.on('game_started', () => {
+      const overlay = document.getElementById('transitionOverlay');
+      overlay.classList.add('active');
+      setTimeout(() => { window.location.href = 'game.html'; }, 1600);
+    });
+
+    socket.on('player_disconnected', () => showToast('A player disconnected.'));
+    socket.on('disconnect',          () => showToast('Connection lost. Reconnecting...'));
+
+    // ── Helpers ──
+    function updateCounter(current, total) {
+      document.getElementById('counterText').textContent =
+        '(' + current + '/' + (total || '?') + ')';
+    }
+
+    function handleStart() {
+      socket.emit('start_game', { code });
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Render player avatar strip ──
+    // If player has a profilePic (Base64 data URL) → show the image.
+    // Otherwise → show a coloured circle with their initial as fallback.
+    function renderAvatars(players) {
+      const strip = document.getElementById('playersStrip');
+      strip.innerHTML = '';
+
+      players.forEach((player, idx) => {
+        const div = document.createElement('div');
+        div.className = 'avatar avatar-color-' + (idx % 10);
+
+        if (player.profilePic) {
+          // Has a profile picture → render as circular image
+          const img = document.createElement('img');
+          img.src = player.profilePic;
+          img.alt = player.name;
+          div.appendChild(img);
+        } else {
+          // No upload → show first letter of their name (default avatar)
+          div.textContent = (player.name || '?').charAt(0).toUpperCase();
+        }
+
+        // Tooltip with player name on hover
+        div.title = player.name || 'Player ' + (idx + 1);
+        strip.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
